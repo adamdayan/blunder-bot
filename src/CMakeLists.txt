@@ -1,0 +1,1 @@
+target_sources(blunder_bot PRIVATE board.cpp)

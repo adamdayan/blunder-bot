@@ -5,6 +5,10 @@ build/*
 # compile commands for clangd
 compile_commands.json
 
+# vscode nonsense
+.vscode/
+.cache/
+
 # Prerequisites
 *.d
 
