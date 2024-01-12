@@ -1,1 +1,1 @@
-target_sources(blunder_bot PRIVATE board.cpp)
+target_sources(blunder_bot PRIVATE position.cpp)

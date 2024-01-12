@@ -1,5 +1,7 @@
 #include "stdio.h"
-#include <board.h>
+
+#include <position.h>
+#include <constants.h>
 
 
 int main() {
@@ -11,6 +13,16 @@ int main() {
   bb.setBoard(1);
   printf("bb.getLowestSetBit(%llu) = %d\n", bb.board, bb.getLowestSetBit()); 
   printf("bb.getHighestSetBit(%llu) = %d\n", bb.board, bb.getHighestSetBit()); 
+  bb.print();
+
+  bb.setBoard(0);
+  bb.setBit(0, 0);
+  bb.print();
+  bb.setBit(6, 6);
+  bb.print();
+
+  Position pos;
+  pos.print();
 
   return 0;
 }
