@@ -68,6 +68,11 @@ class Position {
     // options?
     std::array<std::array<BitBoard, 7>, 2> bit_boards; 
     BitBoard all_pieces;
+    BitBoard enpassant;
+    Colour side_to_move;
+    std::array<std::array<bool, 2>, 2> castling_rights;
+    int halfmove_clock = 0;
+    int fullmove_cnt = 0;
 
 };
 

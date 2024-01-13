@@ -13,7 +13,7 @@ void BitBoard::setBit(int bit_index) {
 }
 
 void BitBoard::setBit(int rank, int file) {
-  int bit_index = (rank * 8) + file;
+  int bit_index = rankFileToIndex(rank, file);
   setBit(bit_index);
 }
 
@@ -22,7 +22,7 @@ bool BitBoard::getBit(int bit_index) const {
 }
 
 bool BitBoard::getBit(int rank, int file) const {
-  int bit_index = (rank * 8) + file;
+  int bit_index = rankFileToIndex(rank, file);
   return getBit(bit_index);
 }
 
@@ -100,7 +100,9 @@ void Position::parseFEN(const std::string& fen) {
   int fen_idx = 0;
   int rank = 7;
   int file = 0;
-  // TODO: add parsing of post position FEN
+  // TODO: defensively check the FEN-string is valid
+
+  // parse position from FEN
   while (rank >= 0 && file < 8) {
     char cur_char = fen[fen_idx];
     if ((cur_char >= 'a' && cur_char <= 'z') ||
@@ -132,32 +134,64 @@ void Position::parseFEN(const std::string& fen) {
     }
   }
 
+  // parse side-to-move
+  fen_idx++;
+  if (fen[fen_idx] == 'w') {
+    side_to_move = Colour::White;
+  } else {
+    side_to_move = Colour::Black;
+  }
+  fen_idx+= 2;
 
-  // // TODO: turn into while loop which makes way more sense
-  // for (int rank = 7; rank >= 0; rank--) {
-  //   for (int file = 0; file < 8; file++) {
-  //     char cur_char = fen[fen_idx];
-  //     if ((cur_char >= 'a' && cur_char <= 'z') ||
-  //         (cur_char >= 'A' && cur_char <= 'Z')) {
-  //       std::pair<Colour, PieceType> piece_info =
-  //           string_to_piece.find(std::string(1, cur_char))->second;
-        
-  //       // set piece-specific and "All" bitboards
-  //       // NOTE: is it worth combining these 3 operations into a "placePiece" method?
-  //       bit_boards[piece_info.first][piece_info.second].setBit(rank, file);
-  //       bit_boards[piece_info.first][PieceType::All].setBit(rank, file);
-  //       all_pieces.setBit(rank, file);
-  //       fen_idx++;
-  //     } else if (cur_char >= '1' && cur_char <= '8') {
-  //       int offset = cur_char - '0' - 1;
-  //       file += offset;
-  //       fen_idx++;
-  //     } else if (cur_char == '/') {
-  //       fen_idx++;
-  //       file--;
-  //     }
-  //   }
-  // }
+  // parse castling rights
+  castling_rights[Colour::White].fill(false);
+  castling_rights[Colour::Black].fill(false);
+
+  while (fen[fen_idx] != ' ') {
+    if (fen[fen_idx] == 'K') {
+      castling_rights[Colour::White][CastlingType::Kingside] = true;
+    } else if (fen[fen_idx] == 'Q') {
+      castling_rights[Colour::White][CastlingType::Queenside] = true;
+    } else if (fen[fen_idx] == 'k') {
+      castling_rights[Colour::Black][CastlingType::Kingside] = true;
+    } else if (fen[fen_idx] == 'q') {
+      castling_rights[Colour::Black][CastlingType::Queenside] = true;
+    }
+    fen_idx++;
+  }
+  fen_idx++;
+
+  // parse en passant 
+  if (fen[fen_idx] != '-') {
+    int rank = fen[fen_idx + 1] - '1';
+    int file = fen[fen_idx] - 'a';
+    enpassant.setBit(rank, file);
+    fen_idx+= 3;
+  } else {
+    fen_idx+=2;
+  }
+
+  // if game hasn't yet started there are no counts to parse
+  if (fen_idx >= fen.size() - 2) {
+    return;
+  }
+
+  // parse halfmove clock
+  std::string hmc;
+  while (fen[fen_idx] != ' ') {
+    hmc += fen[fen_idx];
+    fen_idx++;
+  }
+  halfmove_clock = std::stoi(hmc);
+  fen_idx++;
+
+  // parse fullmove count
+  std::string fmc;
+  while (fen_idx < fen.size() && fen[fen_idx] != ' ') {
+    fmc += fen[fen_idx];
+    fen_idx++;
+  }
+  fullmove_cnt = std::stoi(fmc);
 }
 
 Position::Position() {
@@ -207,6 +241,14 @@ Position::Position() {
 }
 
 void Position::print() const {
+  // print metadata
+  printf("K: %d Q: %d k: %d q: %d hmc: %d fmc: %d\n",
+         castling_rights[Colour::White][CastlingType::Kingside],
+         castling_rights[Colour::White][CastlingType::Queenside],
+         castling_rights[Colour::Black][CastlingType::Kingside],
+         castling_rights[Colour::Black][CastlingType::Queenside],
+         halfmove_clock, fullmove_cnt);
+  // print board state
   // NOTE: not great that this repeats the code from BitBoard
   for (int rank = 7; rank >= 0; rank--) {
     std::string rank_str = std::to_string(rank + 1) + " ";
