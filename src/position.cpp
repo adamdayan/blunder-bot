@@ -122,6 +122,10 @@ void Position::parseFEN(const std::string& fen) {
     } else if (cur_char >= '1' && cur_char <= '8') {
       int offset = cur_char - '0';
       file += offset;
+      if (file > 7) {
+        file = 0;
+        rank--;
+      }
       fen_idx++;
     } else if (cur_char == '/') {
       fen_idx++;
@@ -203,7 +207,6 @@ Position::Position() {
 }
 
 void Position::print() const {
-
   // NOTE: not great that this repeats the code from BitBoard
   for (int rank = 7; rank >= 0; rank--) {
     std::string rank_str = std::to_string(rank + 1) + " ";
@@ -212,10 +215,10 @@ void Position::print() const {
       for (int colour = Colour::White; colour <= Colour::Black; colour++) {
         for (int piece = PieceType::Pawn; piece < PieceType::All; piece++) {
           const BitBoard& bb = bit_boards[colour][piece];
-          // TODO: maybe want to use colour codes to differentiate sides
           if (bb.getBit(rank, file)) {
             rank_str += piece_to_pretty_string[colour][piece] + " ";
-          } else if (!all_pieces.getBit(rank, file) && piece == PieceType::Pawn) {
+          } else if (!all_pieces.getBit(rank, file) &&
+                     piece == PieceType::Pawn && colour == Colour::White) {
             rank_str += "  ";
           }
         }

@@ -25,5 +25,8 @@ int main() {
   pos.parseFEN(tricky_position);
   pos.print();
 
+  pos.parseFEN(empty_board);
+  pos.print();
+
   return 0;
 }
