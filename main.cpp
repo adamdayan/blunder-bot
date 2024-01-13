@@ -15,13 +15,14 @@ int main() {
   printf("bb.getHighestSetBit(%llu) = %d\n", bb.board, bb.getHighestSetBit()); 
   bb.print();
 
-  bb.setBoard(0);
-  bb.setBit(0, 0);
-  bb.print();
+  bb.clear();
   bb.setBit(6, 6);
   bb.print();
 
   Position pos;
+  pos.print();
+
+  pos.parseFEN(tricky_position);
   pos.print();
 
   return 0;

@@ -38,9 +38,12 @@ class BitBoard {
     // clears bit
     void clearBit(int bit_index);
 
+    // sets bitboard to 0
+    void clear();
+
     // prints out the bitboard, optionally takes piece type otherwise defaults
     // to "*"
-    void print(Piece piece_type = Piece::All) const;
+    void print() const;
 
     BoardBits board = 0;
 };
@@ -50,8 +53,15 @@ class Position {
     // sets up board in initial configuration
     Position();
 
+    // sets all bitboards to 0
+    void clear();
+
+    // reads FEN string and sets Position to the according position
+    void parseFEN(const std::string& fen);
+
     // prints out position
     void print() const;
+
 
   private:
     // NOTE: is this double array + member more horrible than 1 enum with all
