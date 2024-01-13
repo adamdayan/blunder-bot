@@ -50,8 +50,8 @@ class BitBoard {
 
 class Position {
   public:
-    // sets up board in initial configuration
-    Position();
+    // initialises Position, uses start position as default
+    Position(const std::string& fen = start_position);
 
     // sets all bitboards to 0
     void clear();

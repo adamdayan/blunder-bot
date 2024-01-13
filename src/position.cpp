@@ -194,50 +194,8 @@ void Position::parseFEN(const std::string& fen) {
   fullmove_cnt = std::stoi(fmc);
 }
 
-Position::Position() {
-  // pawns
-  for (int i = 0; i < 8; i++) {
-    bit_boards[Colour::White][PieceType::Pawn].setBit(1, i);
-    bit_boards[Colour::Black][PieceType::Pawn].setBit(6, i);
-  }
-
-  // knights
-  bit_boards[Colour::White][PieceType::Knight].setBit(0, 1);
-  bit_boards[Colour::White][PieceType::Knight].setBit(0, 6);
-
-  bit_boards[Colour::Black][PieceType::Knight].setBit(7, 1);
-  bit_boards[Colour::Black][PieceType::Knight].setBit(7, 6);
-
-  // bishops
-  bit_boards[Colour::White][PieceType::Bishop].setBit(0, 2);
-  bit_boards[Colour::White][PieceType::Bishop].setBit(0, 5);
-
-  bit_boards[Colour::Black][PieceType::Bishop].setBit(7, 2);
-  bit_boards[Colour::Black][PieceType::Bishop].setBit(7, 5);
-
-  // rooks
-  bit_boards[Colour::White][PieceType::Rook].setBit(0, 0);
-  bit_boards[Colour::White][PieceType::Rook].setBit(0, 7);
-
-  bit_boards[Colour::Black][PieceType::Rook].setBit(7, 0);
-  bit_boards[Colour::Black][PieceType::Rook].setBit(7, 7);
-
-  // queens 
-  bit_boards[Colour::White][PieceType::Queen].setBit(0, 3);
-  bit_boards[Colour::Black][PieceType::Queen].setBit(7, 3);
-
-  // kings
-  bit_boards[Colour::White][PieceType::King].setBit(0, 4);
-  bit_boards[Colour::Black][PieceType::King].setBit(7, 4);
-
-  for (int colour = Colour::White; colour <= Colour::Black; colour++) {
-    for (int piece = PieceType::Pawn; piece <= PieceType::King; piece++) {
-      // TODO: if it proves worthwhile, operator overload all of BitBoard's
-      // bitwise operators to apply to the underlying BoardBits
-      all_pieces.board |= bit_boards[colour][piece].board;
-      bit_boards[colour][PieceType::All].board |= bit_boards[colour][piece].board;
-    }
-  }
+Position::Position(const std::string& fen) {
+  parseFEN(fen);
 }
 
 void Position::print() const {
