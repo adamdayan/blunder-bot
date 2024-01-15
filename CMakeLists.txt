@@ -9,10 +9,17 @@ set(CMAKE_BUILD_TYPE Debug)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+message(CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH})
+
 add_compile_options(-Wuninitialized -Wmaybe-uninitialized -Wunused-variable)
-set(PROJECT_BINARY_DIR out/)
-set(EXECUTABLE_OUTPUT_PATH ${PROJECT_BINARY_DIR})
+set(PROJECT_BINARY_DIR ${CMAKE_SOURCE_DIR}/out/)
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR})
+
+# main binary
+add_subdirectory(src/)
 
 add_executable(blunder_bot main.cpp)
-target_include_directories(blunder_bot PRIVATE include/)
-add_subdirectory(src/)
+target_link_libraries(blunder_bot BlunderLib)
+
+# tests
+add_subdirectory(test/)

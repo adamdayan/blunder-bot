@@ -25,15 +25,15 @@ class BitBoard {
     bool getBit(int bit_index) const;
     bool getBit(int rank, int file) const;
 
-    // returns lowest set bit on the bitboard which corresponds to squares closer to a1
+    // returns lowest set bit index on the bitboard which corresponds to squares closer to a1
     // returns. returns -1 if no set bits 
     int getLowestSetBit();
-    // returns highest set bit on the bitboard which corresponds to squares closer to h8. 
+    // returns highest set bit index on the bitboard which corresponds to squares closer to h8. 
     // returns -1 if no bits set
     int getHighestSetBit();
-    // returns and clears lowest set bit
+    // returns index of and clears lowest set bit
     int popLowestSetBit();
-    // returns and clears highest set bit
+    // returns index of and clears highest set bit
     int popHighestSetBit();
     // clears bit
     void clearBit(int bit_index);

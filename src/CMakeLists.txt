@@ -1,1 +1,2 @@
-target_sources(blunder_bot PRIVATE position.cpp)
+add_library(BlunderLib position.cpp)
+target_include_directories(BlunderLib PUBLIC ../include)
