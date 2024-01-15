@@ -37,6 +37,16 @@ TEST_CASE("test rank / file getBit", "[bitboard]") {
   }
 }
 
+TEST_CASE("test empty on empty board", "[bitboard]") {
+  BitBoard bb;
+  REQUIRE(bb.empty());
+} 
+
+TEST_CASE("test empty() on non empty board", "[bitboard]") {
+  BitBoard bb(34);
+  REQUIRE_FALSE(bb.empty());
+}
+
 TEST_CASE("test bit_index setBit", "[bitboard]") {
   BitBoard bb;
   bb.setBit(16);

@@ -26,6 +26,15 @@ bool BitBoard::getBit(int rank, int file) const {
   return getBit(bit_index);
 }
 
+bool BitBoard::empty() const {
+  for (int i = 0; i < 64; i++) {
+    if (getBit(i)) {
+      return false;
+    }
+  }
+  return true;
+}
+
 int BitBoard::getLowestSetBit() {
   int bit_index = std::countr_zero(board);
   // NOTE: decide if this is the correct way to handle there being 0 set bits
@@ -234,4 +243,24 @@ void Position::print() const {
   }
   printf("%s \n", file_name_str.c_str());
   printf("\n");
+}
+
+BitBoard Position::getPieceBitBoard(Colour colour, PieceType piece_type) {
+  return bit_boards[colour][piece_type];
+}
+
+BitBoard Position::getAllPiecesBitBoard() {
+  return all_pieces;
+}
+
+BitBoard Position::getEnpassantBitBoard() {
+  return enpassant;
+}
+
+Colour Position::getSideToMove() {
+  return side_to_move;
+}
+
+bool Position::canCastle(Colour colour, CastlingType castling_type) {
+  return castling_rights[colour][castling_type];
 }

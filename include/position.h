@@ -22,8 +22,12 @@ class BitBoard {
     // sets bit specified by rank and file;
     void setBit(int rank, int file);
 
+    // gets bit specificied by index
     bool getBit(int bit_index) const;
+    // gets bits specified by rank and file
     bool getBit(int rank, int file) const;
+
+    bool empty() const;
 
     // returns lowest set bit index on the bitboard which corresponds to squares closer to a1
     // returns. returns -1 if no set bits 
@@ -62,6 +66,14 @@ class Position {
     // prints out position
     void print() const;
 
+    // getters
+    // NOTE: very unsure whether bit boards should be public?? Concerned
+    // MoveGenerator breaks encapsulation. TBD! Also, should these return const references?
+    BitBoard getPieceBitBoard(Colour colour, PieceType piece_type);
+    BitBoard getAllPiecesBitBoard();
+    BitBoard getEnpassantBitBoard();
+    Colour getSideToMove();
+    bool canCastle(Colour colour, CastlingType castling_type);
 
   private:
     // NOTE: is this double array + member more horrible than 1 enum with all
