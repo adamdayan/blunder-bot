@@ -31,14 +31,16 @@ class BitBoard {
 
     // returns lowest set bit index on the bitboard which corresponds to squares closer to a1
     // returns. returns -1 if no set bits 
-    int getLowestSetBit();
+    int getLowestSetBit() const;
     // returns highest set bit index on the bitboard which corresponds to squares closer to h8. 
     // returns -1 if no bits set
-    int getHighestSetBit();
+    int getHighestSetBit() const;
     // returns index of and clears lowest set bit
     int popLowestSetBit();
     // returns index of and clears highest set bit
     int popHighestSetBit();
+    // counts set bits
+    int countSetBits() const;
     // clears bit
     void clearBit(int bit_index);
 
@@ -69,11 +71,17 @@ class Position {
     // getters
     // NOTE: very unsure whether bit boards should be public?? Concerned
     // MoveGenerator breaks encapsulation. TBD! Also, should these return const references?
-    BitBoard getPieceBitBoard(Colour colour, PieceType piece_type);
-    BitBoard getAllPiecesBitBoard();
-    BitBoard getEnpassantBitBoard();
-    Colour getSideToMove();
-    bool canCastle(Colour colour, CastlingType castling_type);
+    BitBoard getPieceBitBoard(Colour colour, PieceType piece_type) const;
+    std::array<BitBoard, 7> getPieceBitBoardsByColour(Colour colour) const;
+    BitBoard getAllPiecesBitBoard() const;
+    BitBoard getEnpassantBitBoard() const;
+    Colour getSideToMove() const;
+    bool canCastle(Colour colour, CastlingType castling_type) const;
+
+    // methods needed for detecting draws
+    bool isDrawBy50Moves() const;
+    bool isDrawByRepetition() const;
+    bool isDrawByInsufficientMaterial() const;
 
   private:
     // NOTE: is this double array + member more horrible than 1 enum with all
@@ -85,7 +93,6 @@ class Position {
     std::array<std::array<bool, 2>, 2> castling_rights;
     int halfmove_clock = 0;
     int fullmove_cnt = 0;
-
 };
 
 #endif // POSITION_H 

@@ -27,22 +27,17 @@ bool BitBoard::getBit(int rank, int file) const {
 }
 
 bool BitBoard::empty() const {
-  for (int i = 0; i < 64; i++) {
-    if (getBit(i)) {
-      return false;
-    }
-  }
-  return true;
+  return countSetBits() == 0;
 }
 
-int BitBoard::getLowestSetBit() {
+int BitBoard::getLowestSetBit() const {
   int bit_index = std::countr_zero(board);
   // NOTE: decide if this is the correct way to handle there being 0 set bits
   if (bit_index == 64) return -1;
   return bit_index;
 }
 
-int BitBoard::getHighestSetBit() {
+int BitBoard::getHighestSetBit() const {
   return 63 - std::countl_zero(board);
 }
 
@@ -54,10 +49,6 @@ int BitBoard::popLowestSetBit() {
   return bit_index;
 }
 
-void BitBoard::clear() {
-  setBoard(0);
-}
-
 int BitBoard::popHighestSetBit() {
   int bit_index = getHighestSetBit();
   if (bit_index >= 0) {
@@ -66,8 +57,16 @@ int BitBoard::popHighestSetBit() {
   return bit_index;
 }
 
+int BitBoard::countSetBits() const {
+  return std::popcount(board);
+}
+
 void BitBoard::clearBit(int bit_index) {
   board = board ^ (static_cast<BoardBits>(1) << (bit_index));
+}
+
+void BitBoard::clear() {
+  setBoard(0);
 }
 
 void BitBoard::print() const {
@@ -245,22 +244,84 @@ void Position::print() const {
   printf("\n");
 }
 
-BitBoard Position::getPieceBitBoard(Colour colour, PieceType piece_type) {
+BitBoard Position::getPieceBitBoard(Colour colour, PieceType piece_type) const {
   return bit_boards[colour][piece_type];
 }
 
-BitBoard Position::getAllPiecesBitBoard() {
+std::array<BitBoard, 7> Position::getPieceBitBoardsByColour(Colour colour) const {
+  return bit_boards[colour];
+}
+
+BitBoard Position::getAllPiecesBitBoard() const {
   return all_pieces;
 }
 
-BitBoard Position::getEnpassantBitBoard() {
+BitBoard Position::getEnpassantBitBoard() const {
   return enpassant;
 }
 
-Colour Position::getSideToMove() {
+Colour Position::getSideToMove() const {
   return side_to_move;
 }
 
-bool Position::canCastle(Colour colour, CastlingType castling_type) {
+bool Position::canCastle(Colour colour, CastlingType castling_type) const {
   return castling_rights[colour][castling_type];
+}
+
+bool Position::isDrawBy50Moves() const {
+  return halfmove_clock >= MAX_HALFMOVE_CNT;
+}
+
+bool Position::isDrawByInsufficientMaterial() const {
+  std::array<BitBoard, 7> w = getPieceBitBoardsByColour(Colour::White);
+  std::array<BitBoard, 7> b = getPieceBitBoardsByColour(Colour::Black);
+
+  // if any queens, rooks or pawns are still on the board no draw is possible
+  bool qrp = !w[PieceType::Queen].empty() || !w[PieceType::Rook].empty() ||
+             !w[PieceType::Pawn].empty() ||
+             !b[PieceType::Queen].empty() ||
+             !b[PieceType::Rook].empty() ||
+             !b[PieceType::Pawn].empty();
+  // check each of the possible draw combos
+  if (!qrp) {
+    // king v king
+    bool kk = w[PieceType::Bishop].empty() && w[PieceType::Knight].empty() &&
+              b[PieceType::Bishop].empty() && b[PieceType::Knight].empty();
+    
+    // king and bishop vs king
+    bool kbk = w[PieceType::Bishop].countSetBits() == 1 &&
+               w[PieceType::Knight].empty() && b[PieceType::Bishop].empty() &&
+               b[PieceType::Knight].empty();
+    
+    // king and knight vs king
+    bool knk = w[PieceType::Knight].countSetBits() == 1 &&
+               w[PieceType::Bishop].empty() && b[PieceType::Bishop].empty() &&
+               b[PieceType::Knight].empty();
+
+    // king vs king and bishop
+    bool kkb = w[PieceType::Bishop].empty() && w[PieceType::Knight].empty() &&
+               b[PieceType::Bishop].countSetBits() == 1 &&
+               b[PieceType::Knight].empty();
+
+    // king vs king and knight
+    bool kkn = w[PieceType::Bishop].empty() && w[PieceType::Knight].empty() &&
+               b[PieceType::Bishop].empty() &&
+               b[PieceType::Knight].countSetBits() == 1;
+
+    // king and bishop vs king and bishop. Only a draw if bishops are opposite
+    // coloured!
+    bool kbkb = w[PieceType::Bishop].countSetBits() == 1 &&
+                w[PieceType::Knight].empty() &&
+                b[PieceType::Bishop].countSetBits() == 1 &&
+                w[PieceType::Knight].empty();
+    bool same_colour = isWhiteSquare(w[PieceType::Bishop].getLowestSetBit()) ==
+                       isWhiteSquare(b[PieceType::Bishop].getLowestSetBit());
+    
+    // if any of the above scenarios are true then we have a draw
+    if (kk || kbk || knk || kkb || kkn || (kbkb && same_colour)) {
+      return true;
+    }
+  } 
+
+  return false;
 }

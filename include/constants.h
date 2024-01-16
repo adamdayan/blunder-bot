@@ -76,5 +76,8 @@ const std::string start_position = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR 
 const std::string tricky_position = "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1 ";
 const std::string enpassant_position = "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq e4 0 1 ";
 
+// constant numbers
+constexpr int MAX_HALFMOVE_CNT = 100;
+
 
 #endif // CONSTANTS_H
