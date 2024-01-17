@@ -1,6 +1,7 @@
 #include "move_generator.h"
 #include "constants.h"
 
+// generates all rays from a given square
 BitBoard generateRay(int start_rank, int start_file, RayDirection dir) {
   BitBoard bb;
   // NOTE: would it be better to split these into separate functions?
@@ -66,19 +67,32 @@ BitBoard generateRay(int start_rank, int start_file, RayDirection dir) {
   return bb;  
 }
 
+// generates all possible knight moves from a given square
 BitBoard generateKnightMoves(int rank, int file) {
   BitBoard bb;
+  std::array<int, 4> deltas{6, 15, 17, 10};
+
+  int index = rankFileToIndex(rank, file);
+  for (const auto& delta : deltas) {
+    if (index + delta <= 63) {
+      bb.setBit(index + delta);
+    }
+    if (index - delta >= 0) {
+      bb.setBit(index - delta);
+    }
+  }
 
   return bb;
 }
 
 MoveGenerator::MoveGenerator() {
-  // precomputes all rays
+  // precomputes all rays and knight moves
   for (int rank = 0; rank < 8; rank++) {
     for (int file = 0; file < 8; file++) {
       for (int dir = RayDirection::North; dir <= RayDirection::NorthWest; dir++) {
         rays[rank][file][dir] = generateRay(rank, file, static_cast<RayDirection>(dir));
-      }      
+      }
+      knight_moves[rank][file] = generateKnightMoves(rank, file);
     }
   }
 }
