@@ -87,13 +87,26 @@ BitBoard generateKnightMoves(int rank, int file) {
   return bb;
 }
 
-BitBoard computePawnMoves(const Position& pos) {
-  
+void MoveGenerator::extractPawnMoves(BitBoard bb, int offset, MoveType type, MoveVec& moves, PieceType promotion) {
+  while (!bb.isEmpty()) {
+    int dest = bb.popHighestSetBit();
+    // NOTE: offset sign changes per side
+    moves.emplace_back(dest - offset, dest, type, promotion);
+  }
 }
 
-BitBoard MoveGenerator::computeQuietPawnPushes(const Position& pos, const BoardPerspective& persp) {
+void MoveGenerator::generatePawnMoves(const Position& pos, const BoardPerspective& persp, MoveVec& moves) {
+  generateQuietPawnPushes(pos, persp, moves);
+}
+  
+void MoveGenerator::generateQuietPawnPushes(const Position& pos, const BoardPerspective& persp, MoveVec& moves) {
   BitBoard single_pushes = computeSinglePawnPushes(pos, persp);
+  extractPawnMoves(single_pushes, SINGLE_PAWN_PUSH_OFFSET * persp.offset_sign, MoveType::Quiet,
+                   moves);
+
   BitBoard double_pushes = computeDoublePawnPushes(pos, persp, single_pushes);
+  extractPawnMoves(double_pushes, DOUBLE_PAWN_PUSH_OFFSET * persp.offset_sign, MoveType::Quiet,
+                   moves);
 }
 
 BitBoard MoveGenerator::computeSinglePawnPushes(const Position& pos, const BoardPerspective& persp) {
@@ -118,8 +131,11 @@ BitBoard MoveGenerator::computeDoublePawnPushes(const Position& pos, const Board
   return double_push;
 }
 
-BitBoard MoveGenerator::computePawnCaptures(const Position& pos, const BoardPerspective& persp) {
+void MoveGenerator::generatePawnCaptures(const Position& pos, const BoardPerspective& persp, MoveVec& moves) {
   BitBoard pawns = pos.getPieceBitBoard(persp.side_to_move, PieceType::Pawn);
+  // we will handle pawns about to promote seperately in generatePromotions()
+  pawns &= ~persp.pawn_pre_promote_rank;
+  // get all takeable pieces
   BitBoard enemy_pieces = pos.getPieceBitBoard(persp.opponent, PieceType::All);
   BitBoard enemy_king = pos.getPieceBitBoard(persp.opponent, PieceType::King);
   BitBoard takeable_pieces = enemy_pieces & ~enemy_king;
@@ -127,17 +143,43 @@ BitBoard MoveGenerator::computePawnCaptures(const Position& pos, const BoardPers
   // get up-west captures
   BitBoard west_cap = pawns.shift(persp.up_west);
   west_cap &= takeable_pieces;
+  extractPawnMoves(west_cap, PAWN_WEST_CAPTURE_OFFSET, MoveType::Capture, moves);
 
   BitBoard east_cap = pawns.shift(persp.up_east);
   east_cap &= takeable_pieces;
+  extractPawnMoves(east_cap, PAWN_EAST_CAPTURE_OFFSET, MoveType::Capture, moves);
+}
 
-  // TODO: can't return both bitboards from here, need to extract moves. 
-  // MUST DECIDE HOW MOVES ARE EXTRACTED AND PASSED AROUND
-  return east_cap;
+void MoveGenerator::generatePromotions(const Position& pos, const BoardPerspective& persp, MoveVec& moves) {
+  BitBoard pawns = pos.getPieceBitBoard(persp.side_to_move, PieceType::Pawn);
+  // only care about pawns about to promote
+  pawns &= persp.pawn_pre_promote_rank;
+
+  // get all takeable pieces
+  BitBoard enemy_pieces = pos.getPieceBitBoard(persp.opponent, PieceType::All);
+  BitBoard enemy_king = pos.getPieceBitBoard(persp.opponent, PieceType::King);
+  BitBoard takeable_pieces = enemy_pieces & ~enemy_king;
+  
+  // get captures resulting in promotion
+  BitBoard west_cap = pawns.shift(persp.up_west);
+  west_cap &= takeable_pieces;
+  BitBoard east_cap = pawns.shift(persp.up_east);
+  east_cap &= takeable_pieces;
+  
+
+  // get single pushes resulting in promotion
+  BitBoard single_push = pawns.shift(persp.up);
+  // check there are no blocking piece
+  single_push &= ~pos.getAllPiecesBitBoard();
+
+  for (int piece = PieceType::Knight; piece < PieceType::King; piece++) {
+    extractPawnMoves(west_cap, persp.offset_sign * PAWN_WEST_CAPTURE_OFFSET, MoveType::Capture, moves, static_cast<PieceType>(piece));
+    extractPawnMoves(east_cap, persp.offset_sign * PAWN_EAST_CAPTURE_OFFSET, MoveType::Capture, moves, static_cast<PieceType>(piece));
+    extractPawnMoves(single_push, persp.offset_sign * SINGLE_PAWN_PUSH_OFFSET, MoveType::Quiet, moves, static_cast<PieceType>(piece));
+  }
 }
 
 std::vector<Move> MoveGenerator::generateMoves(const Position& pos) {
-  Direction up, down;
   // directions switch depending on side to move
   BoardPerspective persp(pos.getSideToMove());
 

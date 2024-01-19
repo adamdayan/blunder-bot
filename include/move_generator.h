@@ -10,7 +10,14 @@
 
 // TODO: decide what on earth this class will look like
 class Move {
-  Move(int source, int dest);
+  public:
+    // promotion=PieceType::All means no promotion
+    Move(int source, int dest, MoveType move_type, PieceType promotion = PieceType::All) : source(source), dest(dest), move_type(move_type), promotion(promotion) {};
+
+    int source;
+    int dest;
+    MoveType move_type;
+    PieceType promotion;
 };
 
 class BoardPerspective {
@@ -28,6 +35,7 @@ class BoardPerspective {
         down = Direction::South;
         down_west = Direction::SouthWest;
         up_west = Direction::NorthWest;
+        offset_sign = 1;
       } else {
         opponent = Colour::White;
         pawn_start_rank = RANK7;
@@ -41,6 +49,7 @@ class BoardPerspective {
         down = Direction::North;
         down_west = Direction::NorthWest;
         up_west = Direction::SouthWest;
+        offset_sign = -1;
       }
     }
     Colour side_to_move;
@@ -55,23 +64,29 @@ class BoardPerspective {
     Direction down;
     Direction down_west;
     Direction up_west;
+    int offset_sign;
 };
+
+
+using MoveVec = std::vector<Move>;
 
 class MoveGenerator {
   public:
     // do all precomputation here
     MoveGenerator();
     // computes all legal moves
-    std::vector<Move> generateMoves(const Position& position);
-    BitBoard computePawnMoves(const Position& pos, const BoardPerspective& persp);
-    BitBoard computeQuietPawnPushes(const Position& pos, const BoardPerspective& persp);
+    MoveVec generateMoves(const Position& pos);
+    void generatePawnMoves(const Position& pos, const BoardPerspective& persp, MoveVec& moves);
+    void generateQuietPawnPushes(const Position& pos, const BoardPerspective& persp, MoveVec& moves);
+    void generatePawnCaptures(const Position& pos, const BoardPerspective& persp, MoveVec& moves);
+    void generatePromotions(const Position& pos, const BoardPerspective& persp, MoveVec& moves);
+
     BitBoard computeSinglePawnPushes(const Position& pos, const BoardPerspective& persp);
     BitBoard computeDoublePawnPushes(const Position& pos, const BoardPerspective& persp, BitBoard single_pushes);
-    BitBoard computePawnCaptures(const Position& pos, const BoardPerspective& persp);
-    BitBoard computeEnPassant(const Position& pos);
-    BitBoard computePromotions(const Position& pos);
+    BitBoard computeEnPassant(const Position& pos, const BoardPerspective& persp);
 
   private:
+    void extractPawnMoves(BitBoard bb, int offset, MoveType type, MoveVec& moves, PieceType promotion = PieceType::All);
     BoardMatrix<std::array<BitBoard, 8>> rays;
     BoardMatrix<BitBoard> knight_moves;
 };

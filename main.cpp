@@ -2,6 +2,7 @@
 
 #include <position.h>
 #include <constants.h>
+#include "useful_fens.h"
 
 
 int main() {

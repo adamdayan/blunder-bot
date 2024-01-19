@@ -4,6 +4,7 @@
 #include <array>
 
 #include "constants.h"
+#include "useful_fens.h"
 
 // holds an aspect of positional board state in a 64-bit uint
 class BitBoard {

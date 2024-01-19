@@ -218,6 +218,14 @@ void Position::parseFEN(const std::string& fen) {
   castling_rights[Colour::White].fill(false);
   castling_rights[Colour::Black].fill(false);
 
+  // TODO: this is an insufficient handling of incomplete FEN strings.
+  // We should probably parse FENs which include only board position but no
+  // metadata but we need some guard against then trying to use the resultant
+  // semi-incomplete position
+  if (fen_idx >= fen.size() || fen_idx == fen.size() -1) {
+    return;
+  }
+
   while (fen[fen_idx] != ' ') {
     if (fen[fen_idx] == 'K') {
       castling_rights[Colour::White][CastlingType::Kingside] = true;
