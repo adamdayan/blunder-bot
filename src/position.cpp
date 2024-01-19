@@ -26,8 +26,34 @@ bool BitBoard::getBit(int rank, int file) const {
   return getBit(bit_index);
 }
 
-bool BitBoard::empty() const {
+bool BitBoard::isEmpty() const {
   return countSetBits() == 0;
+}
+
+BitBoard BitBoard::shift(Direction dir) {
+  // TODO: write tests for this
+  if (dir == Direction::North) {
+    return BitBoard(board << 8);
+  } else if (dir == Direction::NorthEast) {
+    // NOTE: will this work?
+    return shift(Direction::North).shift(Direction::East);
+  } else if (dir == Direction::East) {
+    // we don't want to shift pieces on the H-file east because they will wrap
+    // around
+    return BitBoard((board & ~FILEH)<< 1);
+  } else if (dir == Direction::SouthEast) {
+    return shift(Direction::South).shift(Direction::East);
+  } else if (dir == Direction::South) {
+    return BitBoard(board >> 8);
+  } else if (dir == Direction::SouthWest) {
+    return shift(Direction::South).shift(Direction::West);
+  } else if (dir == Direction::West) {
+    return BitBoard((board & ~FILEA) >> 1);
+  } else if (dir == Direction::NorthWest) {
+    return shift(Direction::North).shift(Direction::West);
+  }
+  // TODO: decide how to handle bad input
+  return BitBoard();
 }
 
 int BitBoard::getLowestSetBit() const {
@@ -68,6 +94,43 @@ void BitBoard::clearBit(int bit_index) {
 void BitBoard::clear() {
   setBoard(0);
 }
+
+BitBoard BitBoard::operator&(const BitBoard& bb) const {
+  return BitBoard(board & bb.board);
+}
+
+BitBoard BitBoard::operator|(const BitBoard& bb) const {
+  return BitBoard(board | bb.board);
+}
+
+BitBoard BitBoard::operator^(const BitBoard& bb) const {
+  return BitBoard(board ^ bb.board);
+}
+
+BitBoard BitBoard::operator~() const {
+  return BitBoard(~board);
+}
+
+BitBoard BitBoard::operator<<(int n) const {
+  return BitBoard(board << n);
+}
+
+BitBoard BitBoard::operator>>(int n) const {
+  return BitBoard(board >> n);
+}
+
+void BitBoard::operator&=(const BitBoard& bb) {
+  board &= bb.board;
+}
+
+void BitBoard::operator|=(const BitBoard& bb) {
+  board |= bb.board;
+}
+
+void BitBoard::operator^=(const BitBoard& bb) {
+  board ^= bb.board;
+}
+
 
 void BitBoard::print() const {
   // iterate through each rank, if there's a piece on a file then print it
@@ -277,43 +340,43 @@ bool Position::isDrawByInsufficientMaterial() const {
   std::array<BitBoard, 7> b = getPieceBitBoardsByColour(Colour::Black);
 
   // if any queens, rooks or pawns are still on the board no draw is possible
-  bool qrp = !w[PieceType::Queen].empty() || !w[PieceType::Rook].empty() ||
-             !w[PieceType::Pawn].empty() ||
-             !b[PieceType::Queen].empty() ||
-             !b[PieceType::Rook].empty() ||
-             !b[PieceType::Pawn].empty();
+  bool qrp = !w[PieceType::Queen].isEmpty() || !w[PieceType::Rook].isEmpty() ||
+             !w[PieceType::Pawn].isEmpty() ||
+             !b[PieceType::Queen].isEmpty() ||
+             !b[PieceType::Rook].isEmpty() ||
+             !b[PieceType::Pawn].isEmpty();
   // check each of the possible draw combos
   if (!qrp) {
     // king v king
-    bool kk = w[PieceType::Bishop].empty() && w[PieceType::Knight].empty() &&
-              b[PieceType::Bishop].empty() && b[PieceType::Knight].empty();
+    bool kk = w[PieceType::Bishop].isEmpty() && w[PieceType::Knight].isEmpty() &&
+              b[PieceType::Bishop].isEmpty() && b[PieceType::Knight].isEmpty();
     
     // king and bishop vs king
     bool kbk = w[PieceType::Bishop].countSetBits() == 1 &&
-               w[PieceType::Knight].empty() && b[PieceType::Bishop].empty() &&
-               b[PieceType::Knight].empty();
+               w[PieceType::Knight].isEmpty() && b[PieceType::Bishop].isEmpty() &&
+               b[PieceType::Knight].isEmpty();
     
     // king and knight vs king
     bool knk = w[PieceType::Knight].countSetBits() == 1 &&
-               w[PieceType::Bishop].empty() && b[PieceType::Bishop].empty() &&
-               b[PieceType::Knight].empty();
+               w[PieceType::Bishop].isEmpty() && b[PieceType::Bishop].isEmpty() &&
+               b[PieceType::Knight].isEmpty();
 
     // king vs king and bishop
-    bool kkb = w[PieceType::Bishop].empty() && w[PieceType::Knight].empty() &&
+    bool kkb = w[PieceType::Bishop].isEmpty() && w[PieceType::Knight].isEmpty() &&
                b[PieceType::Bishop].countSetBits() == 1 &&
-               b[PieceType::Knight].empty();
+               b[PieceType::Knight].isEmpty();
 
     // king vs king and knight
-    bool kkn = w[PieceType::Bishop].empty() && w[PieceType::Knight].empty() &&
-               b[PieceType::Bishop].empty() &&
+    bool kkn = w[PieceType::Bishop].isEmpty() && w[PieceType::Knight].isEmpty() &&
+               b[PieceType::Bishop].isEmpty() &&
                b[PieceType::Knight].countSetBits() == 1;
 
     // king and bishop vs king and bishop. Only a draw if bishops are opposite
     // coloured!
     bool kbkb = w[PieceType::Bishop].countSetBits() == 1 &&
-                w[PieceType::Knight].empty() &&
+                w[PieceType::Knight].isEmpty() &&
                 b[PieceType::Bishop].countSetBits() == 1 &&
-                w[PieceType::Knight].empty();
+                w[PieceType::Knight].isEmpty();
     bool same_colour = isWhiteSquare(w[PieceType::Bishop].getLowestSetBit()) ==
                        isWhiteSquare(b[PieceType::Bishop].getLowestSetBit());
     

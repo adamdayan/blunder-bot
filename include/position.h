@@ -5,9 +5,6 @@
 
 #include "constants.h"
 
-// NOTE: is aliasing this actually useful?
-using BoardBits = unsigned long long;
-
 // holds an aspect of positional board state in a 64-bit uint
 class BitBoard {
   public:
@@ -27,7 +24,11 @@ class BitBoard {
     // gets bits specified by rank and file
     bool getBit(int rank, int file) const;
 
-    bool empty() const;
+    // returns true if no bits sets
+    bool isEmpty() const;
+
+    // returns a new bitboard shifted in the specified direction
+    BitBoard shift(Direction dir);
 
     // returns lowest set bit index on the bitboard which corresponds to squares closer to a1
     // returns. returns -1 if no set bits 
@@ -46,6 +47,19 @@ class BitBoard {
 
     // sets bitboard to 0
     void clear();
+
+    // overload bitwise operators to operate on underlying BoardBits 
+    BitBoard operator&(const BitBoard& bb) const;
+    BitBoard operator|(const BitBoard& bb) const;
+    BitBoard operator~() const;
+    BitBoard operator^(const BitBoard& bb) const;
+
+    void operator&=(const BitBoard& bb);
+    void operator|=(const BitBoard& bb);
+    void operator^=(const BitBoard& bb);
+
+    BitBoard operator<<(int n) const;
+    BitBoard operator>>(int n) const;
 
     // prints out the bitboard, optionally takes piece type otherwise defaults
     // to "*"
@@ -80,6 +94,7 @@ class Position {
 
     // methods needed for detecting draws
     bool isDrawBy50Moves() const;
+    // TODO: complete
     bool isDrawByRepetition() const;
     bool isDrawByInsufficientMaterial() const;
 

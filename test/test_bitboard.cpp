@@ -39,12 +39,12 @@ TEST_CASE("test rank / file getBit", "[bitboard]") {
 
 TEST_CASE("test empty on empty board", "[bitboard]") {
   BitBoard bb;
-  REQUIRE(bb.empty());
+  REQUIRE(bb.isEmpty());
 } 
 
 TEST_CASE("test empty() on non empty board", "[bitboard]") {
   BitBoard bb(34);
-  REQUIRE_FALSE(bb.empty());
+  REQUIRE_FALSE(bb.isEmpty());
 }
 
 TEST_CASE("test bit_index setBit", "[bitboard]") {
@@ -125,3 +125,46 @@ TEST_CASE("test clear", "[bitboard]") {
   bb.clear();
   REQUIRE(bb.board == 0);
 }
+
+TEST_CASE("test shift", "[bitboard]") {
+  BitBoard bb(1);
+
+  BitBoard north_shifted = bb.shift(Direction::North);
+  REQUIRE(north_shifted.board == 256);
+
+  BitBoard north_east_shifted = bb.shift(Direction::NorthEast);
+  REQUIRE(north_east_shifted.board == 512);
+
+  BitBoard east_shifted = bb.shift(Direction::East);
+  REQUIRE(east_shifted.board == 2);
+
+  BitBoard bad_west_shifted = bb.shift(Direction::West);
+  REQUIRE(bad_west_shifted.board == 0);
+
+  BitBoard bad_north_west_shifted = bb.shift(Direction::NorthWest);
+  REQUIRE(bad_north_west_shifted.board == 0);
+
+  BitBoard bb2(512);
+  BitBoard south_east_shifted = bb2.shift(Direction::SouthEast);
+  REQUIRE(south_east_shifted.board == 4);
+
+  BitBoard south_shifted = bb2.shift(Direction::South);
+  REQUIRE(south_shifted.board == 2);
+
+  BitBoard south_west_shifted = bb2.shift(Direction::SouthWest);
+  REQUIRE(south_west_shifted.board == 1); 
+
+  BitBoard west_shifted = bb2.shift(Direction::West);
+  REQUIRE(west_shifted.board == 256);
+
+  BitBoard north_west_shifted = bb2.shift(Direction::NorthWest);
+  REQUIRE(north_west_shifted.board == 65536);
+
+  BitBoard bb3(128);
+  BitBoard  bad_east_shifted = bb3.shift(Direction::East);
+  REQUIRE(bad_east_shifted.board == 0);
+
+  BitBoard  bad_north_east_shifted = bb3.shift(Direction::NorthEast);
+  REQUIRE(bad_north_east_shifted.board == 0);
+}
+

@@ -5,6 +5,9 @@
 #include <unordered_map>
 #include <string>
 
+// NOTE: is aliasing this actually useful?
+using BoardBits = unsigned long long;
+
 enum PieceType {
   Pawn,
   Knight,
@@ -20,7 +23,7 @@ enum Colour {
   Black,
 };
 
-enum RayDirection {
+enum Direction {
   North,
   NorthEast,
   East,
@@ -40,6 +43,25 @@ const std::array<std::array<std::string, 6>, 2> piece_to_string = {{
     {{"P", "N", "B", "R", "Q", "K"}},
     {{"p", "n", "b", "r", "q", "k"}},
 }};
+
+// 1-indexed like on the chess board
+constexpr BoardBits RANK1 = 0xFF;
+constexpr BoardBits RANK2 = RANK1 << 8;
+constexpr BoardBits RANK3 = RANK1 << (8 * 2);
+constexpr BoardBits RANK4 = RANK1 << (8 * 3);
+constexpr BoardBits RANK5 = RANK1 << (8 * 4);
+constexpr BoardBits RANK6 = RANK1 << (8 * 5);
+constexpr BoardBits RANK7 = RANK1 << (8 * 6);
+constexpr BoardBits RANK8 = RANK1 << (8 * 7);
+
+constexpr BoardBits FILEA = 72340172838076673;
+constexpr BoardBits FILEB = FILEA << 1;
+constexpr BoardBits FILEC = FILEA << 2;
+constexpr BoardBits FILED = FILEA << 3;
+constexpr BoardBits FILEE = FILEA << 4;
+constexpr BoardBits FILEF = FILEA << 5;
+constexpr BoardBits FILEG = FILEA << 6;
+constexpr BoardBits FILEH = FILEA << 7;
 
 // NOTE: is it bad that the piece2string and string2piece maps are not the same
 // type?

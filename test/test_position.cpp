@@ -9,12 +9,12 @@ TEST_CASE("test parseFEN on empty_position", "[position]") {
     for (int piece = PieceType::Pawn; piece <= PieceType::All; piece++) {
       BitBoard piece_board = pos.getPieceBitBoard(
           static_cast<Colour>(colour), static_cast<PieceType>(piece));
-      REQUIRE(piece_board.empty());
+      REQUIRE(piece_board.isEmpty());
     }
   }
 
-  REQUIRE(pos.getAllPiecesBitBoard().empty());
-  REQUIRE(pos.getEnpassantBitBoard().empty());
+  REQUIRE(pos.getAllPiecesBitBoard().isEmpty());
+  REQUIRE(pos.getEnpassantBitBoard().isEmpty());
 }
 
 // TODO: add more Position tests
