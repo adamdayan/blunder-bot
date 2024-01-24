@@ -80,6 +80,8 @@ class MoveGenerator {
     void generateQuietPawnPushes(const Position& pos, const BoardPerspective& persp, MoveVec& moves);
     void generatePawnCaptures(const Position& pos, const BoardPerspective& persp, MoveVec& moves);
     void generatePromotions(const Position& pos, const BoardPerspective& persp, MoveVec& moves);
+    void generateEnPassant(const Position& pos, const BoardPerspective& persp, MoveVec& moves);
+    void generateKnightMoves(const Position& pos, const BoardPerspective& persp, MoveVec& moves);
 
     BitBoard computeSinglePawnPushes(const Position& pos, const BoardPerspective& persp);
     BitBoard computeDoublePawnPushes(const Position& pos, const BoardPerspective& persp, BitBoard single_pushes);
@@ -87,6 +89,8 @@ class MoveGenerator {
 
   private:
     void extractPawnMoves(BitBoard bb, int offset, MoveType type, MoveVec& moves, PieceType promotion = PieceType::All);
+    // NOTE: not sure this can apply to all pieces - split abstraction if it doesn't work
+    void extractPieceMoves(BitBoard bb, int source, MoveType type, MoveVec& moves, PieceType promotion = PieceType::All);
     BoardMatrix<std::array<BitBoard, 8>> rays;
     BoardMatrix<BitBoard> knight_moves;
 };

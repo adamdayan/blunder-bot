@@ -41,7 +41,8 @@ enum CastlingType {
 
 enum MoveType {
   Quiet,
-  Capture
+  Capture,
+  EnPassantCapture
 };
 
 

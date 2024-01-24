@@ -1,10 +1,11 @@
 #include "move_generator.h"
 #include "constants.h"
+#include "utils.h"
 
 
 
 // generates all rays from a given square
-BitBoard generateRay(int start_rank, int start_file, Direction dir) {
+BitBoard precomputeRay(int start_rank, int start_file, Direction dir) {
   BitBoard bb;
   // NOTE: would it be better to split these into separate functions?
   // Also, is there some better bit-shifty way to do this?
@@ -70,7 +71,7 @@ BitBoard generateRay(int start_rank, int start_file, Direction dir) {
 }
 
 // generates all possible knight moves from a given square
-BitBoard generateKnightMoves(int rank, int file) {
+BitBoard precomputeKnightMoves(int rank, int file) {
   BitBoard bb;
   std::array<int, 4> deltas{6, 15, 17, 10};
 
@@ -95,8 +96,18 @@ void MoveGenerator::extractPawnMoves(BitBoard bb, int offset, MoveType type, Mov
   }
 }
 
+void MoveGenerator::extractPieceMoves(BitBoard bb, int source, MoveType type, MoveVec& moves, PieceType promotion) {
+  while (!bb.isEmpty()) {
+    int dest = bb.popHighestSetBit();
+    moves.emplace_back(source, dest, type, promotion);
+  }
+}
+
 void MoveGenerator::generatePawnMoves(const Position& pos, const BoardPerspective& persp, MoveVec& moves) {
   generateQuietPawnPushes(pos, persp, moves);
+  generatePawnCaptures(pos, persp, moves);
+  generatePromotions(pos, persp, moves);
+  generateEnPassant(pos, persp, moves);
 }
   
 void MoveGenerator::generateQuietPawnPushes(const Position& pos, const BoardPerspective& persp, MoveVec& moves) {
@@ -179,7 +190,42 @@ void MoveGenerator::generatePromotions(const Position& pos, const BoardPerspecti
   }
 }
 
-std::vector<Move> MoveGenerator::generateMoves(const Position& pos) {
+void MoveGenerator::generateEnPassant(const Position& pos, const BoardPerspective& persp, MoveVec& moves) {
+  BitBoard pawns = pos.getPieceBitBoard(persp.side_to_move, PieceType::Pawn);
+  // TODO: work out how to set and clear enpassant bitboard in Position.
+  // Currently only set by FEN parsing
+  BitBoard enpassant_targets = pos.getEnpassantBitBoard();
+
+  // no possible en passant captures
+  if (pawns.isEmpty() || enpassant_targets.isEmpty()) {
+    return;
+  }
+
+  // compute possible en passant captures
+  BitBoard west_cap = pawns.shift(persp.up_west);
+  west_cap &= enpassant_targets;
+  extractPawnMoves(west_cap, persp.offset_sign * PAWN_WEST_CAPTURE_OFFSET, MoveType::EnPassantCapture, moves);
+
+  BitBoard east_cap = pawns.shift(persp.up_east);
+  east_cap &= enpassant_targets;
+  extractPawnMoves(east_cap, persp.offset_sign * PAWN_EAST_CAPTURE_OFFSET, MoveType::EnPassantCapture, moves);
+} 
+
+void MoveGenerator::generateKnightMoves(const Position& pos, const BoardPerspective& persp, MoveVec& moves) {
+  BitBoard knights = pos.getPieceBitBoard(persp.side_to_move, PieceType::Knight);
+  while (!knights.isEmpty()) {
+    int knight_index = knights.popHighestSetBit();
+    BitBoard possible_hops = knight_moves[indexToRank(knight_index)][indexToFile(knight_index)];
+
+    BitBoard quiet_hops = possible_hops & ~pos.getAllPiecesBitBoard();
+    extractPieceMoves(quiet_hops, knight_index, MoveType::Quiet, moves);
+
+    BitBoard capture_hops = possible_hops & pos.getPieceBitBoard(persp.opponent, PieceType::All);
+    extractPieceMoves(capture_hops, knight_index, MoveType::Capture, moves);
+  }
+}
+
+MoveVec MoveGenerator::generateMoves(const Position& pos) {
   // directions switch depending on side to move
   BoardPerspective persp(pos.getSideToMove());
 
@@ -190,9 +236,9 @@ MoveGenerator::MoveGenerator() {
   for (int rank = 0; rank < 8; rank++) {
     for (int file = 0; file < 8; file++) {
       for (int dir = Direction::North; dir <= Direction::NorthWest; dir++) {
-        rays[rank][file][dir] = generateRay(rank, file, static_cast<Direction>(dir));
+        rays[rank][file][dir] = precomputeRay(rank, file, static_cast<Direction>(dir));
       }
-      knight_moves[rank][file] = generateKnightMoves(rank, file);
+      knight_moves[rank][file] = precomputeKnightMoves(rank, file);
     }
   }
 }
