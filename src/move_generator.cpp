@@ -256,167 +256,182 @@ void MoveGenerator::generateKnightMoves(const Position& pos, const BoardPerspect
 
 void MoveGenerator::generateBishopMoves(const Position& pos, const BoardPerspective& persp, MoveVec& moves) {
   BitBoard bishops = pos.getPieceBitBoard(persp.side_to_move, PieceType::Bishop);
+  BitBoard enemy_pieces = pos.getPieceBitBoard(persp.opponent, PieceType::All);
   while (!bishops.isEmpty()) {
     int bishop_index = bishops.popHighestSetBit();
     int bishop_rank = indexToRank(bishop_index);
     int bishop_file = indexToFile(bishop_index);
+    BitBoard bishop_moves;
 
     // north-east
     BitBoard ne_ray = rays[bishop_rank][bishop_file][Direction::NorthEast];
-    generateBishopRayMoves(pos, persp, moves, ne_ray, Direction::NorthEast, bishop_index);
+    bishop_moves |= computeBishopRayMoves(pos, persp, ne_ray, Direction::NorthEast, bishop_index);
 
     // south-east
     BitBoard se_ray = rays[bishop_rank][bishop_file][Direction::SouthEast];
-    generateBishopRayMoves(pos, persp, moves, se_ray, Direction::SouthEast, bishop_index);
+    bishop_moves |= computeBishopRayMoves(pos, persp, se_ray, Direction::SouthEast, bishop_index);
 
     // south-west
     BitBoard sw_ray = rays[bishop_rank][bishop_file][Direction::SouthWest];
-    generateBishopRayMoves(pos, persp, moves, sw_ray, Direction::SouthWest, bishop_index);
+    bishop_moves |= computeBishopRayMoves(pos, persp, sw_ray, Direction::SouthWest, bishop_index);
 
     // north-west
     BitBoard nw_ray = rays[bishop_rank][bishop_file][Direction::NorthWest];
-    generateBishopRayMoves(pos, persp, moves, nw_ray, Direction::NorthWest, bishop_index);
+    bishop_moves |= computeBishopRayMoves(pos, persp, nw_ray, Direction::NorthWest, bishop_index);
+    
+    extractPieceMoves(bishop_moves & ~enemy_pieces, bishop_index, MoveType::Quiet, moves);
+    extractPieceMoves(bishop_moves & enemy_pieces, bishop_index, MoveType::Capture, moves);
   }
 }
 
-void MoveGenerator::generateBishopRayMoves(const Position &pos,
-                                           const BoardPerspective &persp,
-                                           MoveVec &moves, const BitBoard &ray,
-                                           Direction dir, int bishop_index) {
-  BitBoard all_pieces = pos.getAllPiecesBitBoard();
-  BitBoard enemy_pieces = pos.getPieceBitBoard(persp.opponent, PieceType::All);
-  BitBoard intersect = ray & all_pieces;
-  int blocking_index;
-  int offset;
-  if (dir == Direction::NorthEast) {
-    blocking_index = intersect.getLowestSetBit();
-    offset = 9;
-  } else if (dir == Direction::SouthEast) {
-    blocking_index = intersect.getHighestSetBit();
-    offset = -7;
-  } else if (dir == Direction::SouthWest) {
-    blocking_index = intersect.getHighestSetBit();
-    offset = -9;
-  } else if (dir == Direction::NorthWest) {
-    blocking_index = intersect.getLowestSetBit();
-    offset = 7;
-  }
-  // NOTE: consider how to error handle bad cases - probably unnecessary because we are far from user input or syscalls
-
-  int b_index = bishop_index + offset;
-  // travel along the ray to the blocking_index if there is one otherwise to the
-  // edge of the board
-  while (b_index != blocking_index && indexToFile(b_index) >= 0 &&
-         indexToFile(b_index) < 8 && indexToRank(b_index) >= 0 &&
-         indexToRank(b_index) < 8) {
-    b_index += offset;
-    moves.emplace_back(bishop_index, b_index, MoveType::Quiet);
-  }
-  // if the blocking piece is an enemy piece then we have a capture move
-  if (blocking_index >= 0 && enemy_pieces.getBit(blocking_index)) {
-    moves.emplace_back(bishop_index, blocking_index, MoveType::Capture);
-  }
-}
-
-void MoveGenerator::generateRookMoves(const Position& pos, const BoardPerspective& persp, MoveVec& moves) {
-  BitBoard rooks = pos.getPieceBitBoard(persp.side_to_move, PieceType::Rook);
-  while (!rooks.isEmpty()) {
-    int rook_index = rooks.popHighestSetBit();
-    int rook_rank = indexToRank(rook_index);
-    int rook_file = indexToFile(rook_index);
-
-    // north
-    BitBoard n_ray = rays[rook_rank][rook_file][Direction::North];
-    generateRookRayMoves(pos, persp, moves, n_ray, Direction::North, rook_index);
-
-    // east
-    BitBoard e_ray = rays[rook_rank][rook_file][Direction::East];
-    generateRookRayMoves(pos, persp, moves, e_ray, Direction::East, rook_index);
-
-    // south 
-    BitBoard s_ray = rays[rook_rank][rook_file][Direction::South];
-    generateRookRayMoves(pos, persp, moves, s_ray, Direction::South, rook_index);
-
-    // west 
-    BitBoard w_ray = rays[rook_rank][rook_file][Direction::West];
-    generateRookRayMoves(pos, persp, moves, w_ray, Direction::West, rook_index);
-  }
-}
-
-void MoveGenerator::generateRookRayMoves(const Position& pos, const BoardPerspective& persp, MoveVec& moves, const BitBoard& ray, Direction dir, int rook_index) {
+BitBoard MoveGenerator::computeBishopRayMoves(const Position& pos, const BoardPerspective& persp, BitBoard ray, const Direction dir, int bishop_index) {
   BitBoard all_pieces = pos.getAllPiecesBitBoard();
   BitBoard enemy_pieces = pos.getPieceBitBoard(persp.opponent, PieceType::All);
   int blocking_index;
   int offset;
   BitBoard intersect = all_pieces & ray;
+  // if intersection point is with an enemy piece then we can capture
+  bool is_capture = !(intersect & enemy_pieces).isEmpty();
+  if (dir == Direction::NorthEast) {
+    blocking_index = intersect.getLowestSetBit();
+    offset = 9;
+    // if intersection is a capture the ray extends an extra square with a capture
+    if (is_capture) blocking_index += offset;
+    ray.clearBitsAbove(blocking_index);
+  } else if (dir == Direction::SouthEast) {
+    blocking_index = intersect.getHighestSetBit();
+    offset = -7;
+    if (is_capture) blocking_index += offset;
+    ray.clearBitsBelow(blocking_index);
+  } else if (dir == Direction::SouthWest) {
+    blocking_index = intersect.getHighestSetBit();
+    offset = -9;
+    if (is_capture) blocking_index += offset;
+    ray.clearBitsBelow(blocking_index);
+  } else if (dir == Direction::NorthWest) {
+    blocking_index = intersect.getLowestSetBit();
+    offset = 7;
+    if (is_capture) blocking_index += offset;
+    ray.clearBitsAbove(blocking_index);
+  }
+
+  return ray;
+}
+
+void MoveGenerator::generateRookMoves(const Position& pos, const BoardPerspective& persp, MoveVec& moves) {
+  BitBoard rooks = pos.getPieceBitBoard(persp.side_to_move, PieceType::Rook);
+  BitBoard enemy_pieces = pos.getPieceBitBoard(persp.opponent, PieceType::All);
+  while (!rooks.isEmpty()) {
+    int rook_index = rooks.popHighestSetBit();
+    int rook_rank = indexToRank(rook_index);
+    int rook_file = indexToFile(rook_index);
+    BitBoard rook_moves;
+
+    // north
+    BitBoard n_ray = rays[rook_rank][rook_file][Direction::North];
+    rook_moves |= computeRookRayMoves(pos, persp, n_ray, Direction::North, rook_index);
+
+    // east
+    BitBoard e_ray = rays[rook_rank][rook_file][Direction::East];
+    rook_moves |= computeRookRayMoves(pos, persp, e_ray, Direction::East, rook_index);
+
+    // south 
+    BitBoard s_ray = rays[rook_rank][rook_file][Direction::South];
+    rook_moves |= computeRookRayMoves(pos, persp, s_ray, Direction::South, rook_index);
+
+    // west 
+    BitBoard w_ray = rays[rook_rank][rook_file][Direction::West];
+    rook_moves |= computeRookRayMoves(pos, persp, w_ray, Direction::West, rook_index);
+
+    extractPieceMoves(rook_moves & ~enemy_pieces, rook_index, MoveType::Quiet, moves);
+    extractPieceMoves(rook_moves & enemy_pieces, rook_index, MoveType::Capture, moves);
+  }
+}
+
+BitBoard MoveGenerator::computeRookRayMoves(const Position& pos, const BoardPerspective& persp, BitBoard ray, Direction dir, int rook_index) {
+  BitBoard all_pieces = pos.getAllPiecesBitBoard();
+  BitBoard enemy_pieces = pos.getPieceBitBoard(persp.opponent, PieceType::All);
+  int blocking_index;
+  int offset;
+  BitBoard intersect = all_pieces & ray;
+  // if intersection point is with an enemy piece then we can capture
+  bool is_capture = !(intersect & enemy_pieces).isEmpty();
   if (dir == Direction::North) {
     blocking_index = intersect.getLowestSetBit();
     offset = 8;
+    // if intersection is a capture the ray extends an extra square with a capture
+    if (is_capture) blocking_index += offset;
+    ray.clearBitsAbove(blocking_index);
   } else if (dir == Direction::East) {
     blocking_index = intersect.getLowestSetBit();
     offset = 1;
+    if (is_capture) blocking_index += offset;
+    ray.clearBitsAbove(blocking_index);
   } else if (dir == Direction::South) {
     blocking_index = intersect.getHighestSetBit();
     offset = -8;
+    if (is_capture) blocking_index += offset;
+    ray.clearBitsBelow(blocking_index);
   } else if (dir == Direction::West) {
-    blocking_index = intersect.getLowestSetBit();
+    blocking_index = intersect.getHighestSetBit();
     offset = -1;
+    if (is_capture) blocking_index += offset;
+    ray.clearBitsBelow(blocking_index);
   }
-  int r_index = rook_index + offset;
-  // travel along ray to blocking index if there is one or to edge of the board
-  while (r_index != blocking_index && indexToRank(r_index) >= 0 &&
-         indexToRank(r_index) < 8 && indexToFile(r_index) >= 0 &&
-         indexToFile(r_index) < 8) {
-    r_index += offset;
-    moves.emplace_back(rook_index, r_index, MoveType::Quiet);
-  }
-  // if the blocking piece is an enemy piece then we have a capture move
-  if (blocking_index >= 0 && enemy_pieces.getBit(blocking_index)) {
-    moves.emplace_back(rook_index, blocking_index, MoveType::Capture);
-  }
+
+  return ray;
 }
 
 void MoveGenerator::generateQueenMoves(const Position& pos, const BoardPerspective& persp, MoveVec& moves) {
   BitBoard queens = pos.getPieceBitBoard(persp.side_to_move, PieceType::Queen);
+  BitBoard enemy_pieces = pos.getPieceBitBoard(persp.opponent, PieceType::All);
   while (!queens.isEmpty()) {
     int queen_index = queens.popHighestSetBit();
+    BitBoard queen_moves = computeQueenMoves(pos, persp, queen_index);
+    extractPieceMoves(queen_moves & ~enemy_pieces, queen_index, MoveType::Quiet, moves);
+    extractPieceMoves(queen_moves & enemy_pieces, queen_index, MoveType::Capture, moves);
+  }
+}
+
+BitBoard MoveGenerator::computeQueenMoves(const Position& pos, const BoardPerspective& persp, int queen_index) {
     int queen_rank = indexToRank(queen_index);
     int queen_file = indexToFile(queen_index);
+    BitBoard queen_moves;
 
     // queen is a combo of a bishop and rook so we can use their move generation functions
-
     // north
     BitBoard n_ray = rays[queen_rank][queen_file][Direction::North];
-    generateRookRayMoves(pos, persp, moves, n_ray, Direction::North, queen_index);
+    queen_moves |= computeRookRayMoves(pos, persp, n_ray, Direction::North, queen_index);
 
     // east
     BitBoard e_ray = rays[queen_rank][queen_file][Direction::East];
-    generateRookRayMoves(pos, persp, moves, e_ray, Direction::East, queen_index);
+    queen_moves |= computeRookRayMoves(pos, persp, e_ray, Direction::East, queen_index);
 
     // south 
     BitBoard s_ray = rays[queen_rank][queen_file][Direction::South];
-    generateRookRayMoves(pos, persp, moves, s_ray, Direction::South, queen_index);
+    queen_moves |= computeRookRayMoves(pos, persp, s_ray, Direction::South, queen_index);
 
     // west 
     BitBoard w_ray = rays[queen_rank][queen_file][Direction::West];
-    generateRookRayMoves(pos, persp, moves, w_ray, Direction::West, queen_index);
+    queen_moves |= computeRookRayMoves(pos, persp, w_ray, Direction::West, queen_index);
 
     // north-east
     BitBoard ne_ray = rays[queen_rank][queen_file][Direction::NorthEast];
-    generateBishopRayMoves(pos, persp, moves, ne_ray, Direction::NorthEast, queen_index);
+    queen_moves |= computeBishopRayMoves(pos, persp, ne_ray, Direction::NorthEast, queen_index);
 
     // south-east
     BitBoard se_ray = rays[queen_rank][queen_file][Direction::SouthEast];
-    generateBishopRayMoves(pos, persp, moves, se_ray, Direction::SouthEast, queen_index);
+    queen_moves |= computeBishopRayMoves(pos, persp, se_ray, Direction::SouthEast, queen_index);
 
     // south-west
     BitBoard sw_ray = rays[queen_rank][queen_file][Direction::SouthWest];
-    generateBishopRayMoves(pos, persp, moves, sw_ray, Direction::SouthWest, queen_index);
+    queen_moves |= computeBishopRayMoves(pos, persp, sw_ray, Direction::SouthWest, queen_index);
 
     // north-west
     BitBoard nw_ray = rays[queen_rank][queen_file][Direction::NorthWest];
-    generateBishopRayMoves(pos, persp, moves, nw_ray, Direction::NorthWest, queen_index);
-  }
+    queen_moves |= computeBishopRayMoves(pos, persp, nw_ray, Direction::NorthWest, queen_index);
+
+    return queen_moves;
 }
 
 void MoveGenerator::generateKingMoves(const Position& pos, const BoardPerspective& persp, MoveVec& moves) {
@@ -451,6 +466,7 @@ void MoveGenerator::generateCastles(const Position& pos, const BoardPerspective&
 
   if (pos.canCastle(persp.side_to_move, CastlingType::Kingside) &&
       (kingside_mask & all_pieces).isEmpty()) {
+    // TODO: turn magic nums into constants
     int source = (persp.side_to_move == Colour::White) ? 4 : 60;        
     int dest = (persp.side_to_move == Colour::White) ? 6 : 62;        
     moves.emplace_back(source, dest, MoveType::KingsideCastle);
@@ -462,6 +478,20 @@ void MoveGenerator::generateCastles(const Position& pos, const BoardPerspective&
     int dest = (persp.side_to_move == Colour::White) ? 2 : 58;        
     moves.emplace_back(source, dest, MoveType::QueensideCastle);
   }
+}
+
+bool MoveGenerator::isLegal(const Move& move, const Position& pos, BoardPerspective& persp, int king_index, BitBoard checkers, BitBoard blockers) {
+
+}
+
+bool MoveGenerator::isLegalKingMove(const Move& move, const Position& pos, const BoardPerspective& persp) {
+  // most chess moves are symmetrical - we can simply calculate attacks from all
+  // piece types starting at the king's square. If one of those attacks overlaps
+  // with a enemy piece of the same type then the king would be in check on that
+  // square
+
+  // bishop moves
+
 }
 
 MoveVec MoveGenerator::generateMoves(const Position& pos) {

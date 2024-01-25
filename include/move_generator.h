@@ -94,20 +94,23 @@ class MoveGenerator {
     void generateEnPassant(const Position& pos, const BoardPerspective& persp, MoveVec& moves);
     void generateKnightMoves(const Position& pos, const BoardPerspective& persp, MoveVec& moves);
     void generateBishopMoves(const Position& pos, const BoardPerspective& persp, MoveVec& moves);
-    void generateBishopRayMoves(const Position& pos, const BoardPerspective& persp, MoveVec& moves, const BitBoard& ray, Direction dir, int bishop_index);
     void generateRookMoves(const Position& pos, const BoardPerspective& persp, MoveVec& moves);
-    void generateRookRayMoves(const Position& pos, const BoardPerspective& persp, MoveVec& moves, const BitBoard& ray, Direction dir, int rook_index);
     void generateQueenMoves(const Position& pos, const BoardPerspective& persp, MoveVec& moves);
     void generateKingMoves(const Position& pos, const BoardPerspective& persp, MoveVec& moves);
     void generateCastles(const Position& pos, const BoardPerspective& persp, MoveVec& moves);
 
+    bool isLegal(const Move& move, const Position& pos, BoardPerspective& persp, int king_index, BitBoard checkers, BitBoard blockers);
+    bool isLegalKingMove(const Move& move, const Position& pos, const BoardPerspective& persp);
+
     BitBoard computeSinglePawnPushes(const Position& pos, const BoardPerspective& persp);
     BitBoard computeDoublePawnPushes(const Position& pos, const BoardPerspective& persp, BitBoard single_pushes);
     BitBoard computeEnPassant(const Position& pos, const BoardPerspective& persp);
+    BitBoard computeRookRayMoves(const Position& pos, const BoardPerspective& persp, BitBoard ray, const Direction dir, int rook_index);
+    BitBoard computeBishopRayMoves(const Position& pos, const BoardPerspective& persp, BitBoard ray, const Direction dir, int bishop_index);
+    BitBoard computeQueenMoves(const Position&  pos, const BoardPerspective& persp, int queen_index);
 
   private:
     void extractPawnMoves(BitBoard bb, int offset, MoveType type, MoveVec& moves, PieceType promotion = PieceType::All);
-    // NOTE: not sure this can apply to all pieces - split abstraction if it doesn't work
     void extractPieceMoves(BitBoard bb, int source, MoveType type, MoveVec& moves);
     BoardMatrix<std::array<BitBoard, 8>> rays;
     BoardMatrix<BitBoard> knight_moves;

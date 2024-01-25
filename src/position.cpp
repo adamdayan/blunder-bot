@@ -91,6 +91,16 @@ void BitBoard::clearBit(int bit_index) {
   board = board ^ (static_cast<BoardBits>(1) << (bit_index));
 }
 
+void BitBoard::clearBitsAbove(int bit_index) {
+  BoardBits mask = (BoardBits(1) << bit_index) - 1;
+  board = board & mask;
+}
+
+void BitBoard::clearBitsBelow(int bit_index) {
+  BoardBits mask = ~((BoardBits(1) << (bit_index + 1)) - 1);
+  board = board & mask;
+}
+
 void BitBoard::clear() {
   setBoard(0);
 }

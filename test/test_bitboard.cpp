@@ -168,3 +168,16 @@ TEST_CASE("test shift", "[bitboard]") {
   REQUIRE(bad_north_east_shifted.board == 0);
 }
 
+TEST_CASE("test clearBitsAbove", "[bitboard]") {
+  BitBoard bb(15);
+  bb.clearBitsAbove(2);
+  REQUIRE(bb.board == 3);
+}
+
+TEST_CASE("test clearBitsBelow", "[bitboard]") {
+  BitBoard bb(15);
+  bb.clearBitsBelow(2);
+  REQUIRE(bb.board == 8);
+}
+
+

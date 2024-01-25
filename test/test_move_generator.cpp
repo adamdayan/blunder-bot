@@ -119,13 +119,14 @@ TEST_CASE("test generateQueenMoves()", "[move_generator]") {
   move_gen.generateQueenMoves(pos, persp, moves);  
 
   REQUIRE(moves.size() == 3);
-  // w ray
-  REQUIRE(moves[0].source == rankFileToIndex(2, 3));
-  REQUIRE(moves[0].dest == rankFileToIndex(2, 2));
-  REQUIRE(moves[0].move_type == MoveType::Capture);
+  
   // ne ray
+  REQUIRE(moves[0].source == rankFileToIndex(2, 3));
+  REQUIRE(moves[0].dest == rankFileToIndex(3, 4));
+  REQUIRE(moves[0].move_type == MoveType::Capture);
+  // w ray
   REQUIRE(moves[1].source == rankFileToIndex(2, 3));
-  REQUIRE(moves[1].dest == rankFileToIndex(3, 4));
+  REQUIRE(moves[1].dest == rankFileToIndex(2, 2));
   REQUIRE(moves[1].move_type == MoveType::Capture);
   // sw ray
   REQUIRE(moves[2].source == rankFileToIndex(2, 3));

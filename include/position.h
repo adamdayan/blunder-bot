@@ -41,11 +41,16 @@ class BitBoard {
     int popLowestSetBit();
     // returns index of and clears highest set bit
     int popHighestSetBit();
+
     // counts set bits
     int countSetBits() const;
+
     // clears bit
     void clearBit(int bit_index);
-
+    // clears all bits higher at bit_index or higher
+    void clearBitsAbove(int bit_index);
+    // clear all bits at bit index or lower
+    void clearBitsBelow(int bit_index);
     // sets bitboard to 0
     void clear();
 
