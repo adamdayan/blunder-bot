@@ -8,6 +8,15 @@
 #include "utils.h"
 #include "constants.h"
 
+enum MoveType {
+  Quiet,
+  Capture,
+  EnPassantCapture,
+  KingsideCastle,
+  QueensideCastle,
+  // TODO: add promotion?
+};
+
 // TODO: decide what on earth this class will look like
 class Move {
   public:
@@ -76,6 +85,8 @@ class MoveGenerator {
     MoveGenerator();
     // computes all legal moves
     MoveVec generateMoves(const Position& pos);
+    // all the below generateX methods generate pseudo-legal moves only. We
+    // prune the illegal moves in a post-processing step
     void generatePawnMoves(const Position& pos, const BoardPerspective& persp, MoveVec& moves);
     void generateQuietPawnPushes(const Position& pos, const BoardPerspective& persp, MoveVec& moves);
     void generatePawnCaptures(const Position& pos, const BoardPerspective& persp, MoveVec& moves);
@@ -88,6 +99,7 @@ class MoveGenerator {
     void generateRookRayMoves(const Position& pos, const BoardPerspective& persp, MoveVec& moves, const BitBoard& ray, Direction dir, int rook_index);
     void generateQueenMoves(const Position& pos, const BoardPerspective& persp, MoveVec& moves);
     void generateKingMoves(const Position& pos, const BoardPerspective& persp, MoveVec& moves);
+    void generateCastles(const Position& pos, const BoardPerspective& persp, MoveVec& moves);
 
     BitBoard computeSinglePawnPushes(const Position& pos, const BoardPerspective& persp);
     BitBoard computeDoublePawnPushes(const Position& pos, const BoardPerspective& persp, BitBoard single_pushes);

@@ -433,6 +433,37 @@ void MoveGenerator::generateKingMoves(const Position& pos, const BoardPerspectiv
   extractPieceMoves(captures, king_index, MoveType::Capture, moves);
 }
 
+// TODO: test this!
+void MoveGenerator::generateCastles(const Position& pos, const BoardPerspective& persp, MoveVec& moves) {
+  // NOTE: this should possible go inside BoardPerspective ?
+  // masks for the squares that must be empty 
+  BitBoard kingside_mask;
+  BitBoard queenside_mask;
+  if (persp.side_to_move == Colour::White) {
+    kingside_mask = BitBoard(96);
+    queenside_mask = BitBoard(14);
+  } else {
+    kingside_mask = BitBoard(6917529027641081856);
+    queenside_mask = BitBoard(1008806316530991104);
+  }
+
+  BitBoard all_pieces = pos.getAllPiecesBitBoard();
+
+  if (pos.canCastle(persp.side_to_move, CastlingType::Kingside) &&
+      (kingside_mask & all_pieces).isEmpty()) {
+    int source = (persp.side_to_move == Colour::White) ? 4 : 60;        
+    int dest = (persp.side_to_move == Colour::White) ? 6 : 62;        
+    moves.emplace_back(source, dest, MoveType::KingsideCastle);
+  }
+
+  if (pos.canCastle(persp.side_to_move, CastlingType::Queenside) &&
+      (queenside_mask & all_pieces).isEmpty()) {
+    int source = (persp.side_to_move == Colour::White) ? 4 : 60;        
+    int dest = (persp.side_to_move == Colour::White) ? 2 : 58;        
+    moves.emplace_back(source, dest, MoveType::QueensideCastle);
+  }
+}
+
 MoveVec MoveGenerator::generateMoves(const Position& pos) {
   // directions switch depending on side to move
   BoardPerspective persp(pos.getSideToMove());

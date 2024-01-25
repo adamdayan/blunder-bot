@@ -39,11 +39,6 @@ enum CastlingType {
   Queenside
 };
 
-enum MoveType {
-  Quiet,
-  Capture,
-  EnPassantCapture
-};
 
 
 const std::array<std::array<std::string, 6>, 2> piece_to_string = {{
