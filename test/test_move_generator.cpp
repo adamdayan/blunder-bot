@@ -61,11 +61,97 @@ TEST_CASE("test knight moves", "[move_generator]") {
   BoardPerspective persp(pos.getSideToMove());
   MoveVec moves;
   move_gen.generateKnightMoves(pos, persp, moves);
+  // final move should be taking the rook
   REQUIRE(moves.size() == 6);
   REQUIRE(moves[5].source == rankFileToIndex(1, 3));
   REQUIRE(moves[5].dest == rankFileToIndex(3, 4));
   REQUIRE(moves[5].move_type == MoveType::Capture);
+  // check the other moves are quiet
   for (int i = 0; i < 5; i++) {
-    REQUIRE(moves[i].move_type != MoveType::Capture);
+    REQUIRE(moves[i].move_type == MoveType::Quiet);
   }
+}
+
+TEST_CASE("test bishop moves", "[move_generator]") {
+  MoveGenerator move_gen;
+  std::string bishop_position = "8/8/8/2p1p3/3B4/2P1P3/8/8 w - - 0 0";
+  Position pos(bishop_position);
+  BoardPerspective persp(pos.getSideToMove());
+  MoveVec moves;
+  move_gen.generateBishopMoves(pos, persp, moves);  
+
+  REQUIRE(moves.size() == 2);
+  // ne ray is first
+  REQUIRE(moves[0].source == rankFileToIndex(3, 3));
+  REQUIRE(moves[0].dest == rankFileToIndex(4, 4));
+  REQUIRE(moves[0].move_type == MoveType::Capture);
+  // sw ray
+  REQUIRE(moves[1].source == rankFileToIndex(3, 3));
+  REQUIRE(moves[1].dest == rankFileToIndex(4, 2));
+  REQUIRE(moves[1].move_type == MoveType::Capture);
+}
+
+TEST_CASE("test rook moves", "[move_generator]") {
+  MoveGenerator move_gen;
+  std::string rook_position = "8/8/8/8/3p4/2PRp3/3P4/8 w - - 0 0";
+  Position pos(rook_position);
+  BoardPerspective persp(pos.getSideToMove());
+  MoveVec moves;
+  move_gen.generateRookMoves(pos, persp, moves);  
+
+  REQUIRE(moves.size() == 2);
+  // n ray is first
+  REQUIRE(moves[0].source == rankFileToIndex(2, 3));
+  REQUIRE(moves[0].dest == rankFileToIndex(3, 3));
+  REQUIRE(moves[0].move_type == MoveType::Capture);
+  // e ray
+  REQUIRE(moves[1].source == rankFileToIndex(2, 3));
+  REQUIRE(moves[1].dest == rankFileToIndex(2, 4));
+  REQUIRE(moves[1].move_type == MoveType::Capture);
+}
+
+TEST_CASE("test queen moves", "[move_generator]") {
+  MoveGenerator move_gen;
+  std::string queen_position = "8/8/8/8/2PPp3/2pQP3/2pPP3/8 w - - 0 0";
+  Position pos(queen_position);
+  BoardPerspective persp(pos.getSideToMove());
+  MoveVec moves;
+  move_gen.generateQueenMoves(pos, persp, moves);  
+
+  REQUIRE(moves.size() == 3);
+  // w ray
+  REQUIRE(moves[0].source == rankFileToIndex(2, 3));
+  REQUIRE(moves[0].dest == rankFileToIndex(2, 2));
+  REQUIRE(moves[0].move_type == MoveType::Capture);
+  // ne ray
+  REQUIRE(moves[1].source == rankFileToIndex(2, 3));
+  REQUIRE(moves[1].dest == rankFileToIndex(3, 4));
+  REQUIRE(moves[1].move_type == MoveType::Capture);
+  // sw ray
+  REQUIRE(moves[2].source == rankFileToIndex(2, 3));
+  REQUIRE(moves[2].dest == rankFileToIndex(1, 2));
+  REQUIRE(moves[2].move_type == MoveType::Capture);
+}
+
+TEST_CASE("test king moves", "[move_generator]") {
+  MoveGenerator move_gen;
+  std::string king_position = "8/8/8/8/2P1P3/2PKP3/2ppP3/8";
+  Position pos(king_position);
+  BoardPerspective persp(pos.getSideToMove());
+  MoveVec moves;
+  move_gen.generateKingMoves(pos, persp, moves);  
+
+  REQUIRE(moves.size() == 3);
+
+  REQUIRE(moves[0].source == rankFileToIndex(2, 3));
+  REQUIRE(moves[0].dest == rankFileToIndex(3, 3));
+  REQUIRE(moves[0].move_type == MoveType::Quiet);
+
+  REQUIRE(moves[1].source == rankFileToIndex(2, 3));
+  REQUIRE(moves[1].dest == rankFileToIndex(1, 3));
+  REQUIRE(moves[1].move_type == MoveType::Capture);
+
+  REQUIRE(moves[2].source == rankFileToIndex(2, 3));
+  REQUIRE(moves[2].dest == rankFileToIndex(1, 2));
+  REQUIRE(moves[2].move_type == MoveType::Capture);
 }
