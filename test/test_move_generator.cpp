@@ -91,6 +91,44 @@ TEST_CASE("test generateBishopMoves()", "[move_generator]") {
   REQUIRE(moves[1].move_type == MoveType::Capture);
 }
 
+TEST_CASE("test top corner generateBishopMoves()", "[move_generator]") {
+  MoveGenerator move_gen;
+  std::string bishop_position = "5N1N/6b1/5p1p/8/8/8/8/8 b - - 0 0";
+  Position pos(bishop_position);
+  BoardPerspective persp(pos.getSideToMove());
+  MoveVec moves;
+  move_gen.generateBishopMoves(pos, persp, moves);  
+
+  REQUIRE(moves.size() == 2);
+  // ne ray is first
+  REQUIRE(moves[0].source == rankFileToIndex(6, 6));
+  REQUIRE(moves[0].dest == rankFileToIndex(7, 7));
+  REQUIRE(moves[0].move_type == MoveType::Capture);
+  // nw ray
+  REQUIRE(moves[1].source == rankFileToIndex(6, 6));
+  REQUIRE(moves[1].dest == rankFileToIndex(7, 5));
+  REQUIRE(moves[1].move_type == MoveType::Capture);
+}
+
+TEST_CASE("test bottom corner generateBishopMoves()", "[move_generator]") {
+  MoveGenerator move_gen;
+  std::string bishop_position = "8/8/8/8/8/P1p5/1b6/N1p5 b - - 0 0";
+  Position pos(bishop_position);
+  BoardPerspective persp(pos.getSideToMove());
+  MoveVec moves;
+  move_gen.generateBishopMoves(pos, persp, moves);  
+
+  REQUIRE(moves.size() == 2);
+
+  REQUIRE(moves[0].source == rankFileToIndex(1, 1));
+  REQUIRE(moves[0].dest == rankFileToIndex(2, 0));
+  REQUIRE(moves[0].move_type == MoveType::Capture);
+
+  REQUIRE(moves[1].source == rankFileToIndex(1, 1));
+  REQUIRE(moves[1].dest == rankFileToIndex(0, 0));
+  REQUIRE(moves[1].move_type == MoveType::Capture);
+}
+
 TEST_CASE("test generateRookMoves()", "[move_generator]") {
   MoveGenerator move_gen;
   std::string rook_position = "8/8/8/8/3p4/2PRp3/3P4/8 w - - 0 0";
@@ -216,4 +254,25 @@ TEST_CASE("test invalid queenside generateCastles()", "[move_generator]") {
   move_gen.generateCastles(pos, persp, moves);
   // final move should be taking the rook
   REQUIRE(moves.size() == 0);
+}
+
+TEST_CASE("test false isLegalKingMove()", "[move_generator]") {
+  MoveGenerator move_gen;
+  std::string illegal_king_move_position = "1rr5/8/8/8/8/8/P7/K7 w - - 0 0";
+  Position pos(illegal_king_move_position);
+  BoardPerspective persp(pos.getSideToMove());
+  Move move0(0, 1, MoveType::Quiet);
+  REQUIRE_FALSE(move_gen.isLegalKingMove(move0, pos, persp));
+
+  Move move1(0, 9, MoveType::Quiet);
+  REQUIRE_FALSE(move_gen.isLegalKingMove(move1, pos, persp));
+}
+
+TEST_CASE("test true isLegalKingMove()", "[move_generator]") {
+  MoveGenerator move_gen;
+  std::string illegal_king_move_position = "1rr5/8/8/8/8/P7/8/K7 w - - 0 0";
+  Position pos(illegal_king_move_position);
+  BoardPerspective persp(pos.getSideToMove());
+  Move move(0, 8, MoveType::Quiet);
+  REQUIRE(move_gen.isLegalKingMove(move, pos, persp));
 }

@@ -101,10 +101,15 @@ class MoveGenerator {
 
     bool isLegal(const Move& move, const Position& pos, BoardPerspective& persp, int king_index, BitBoard checkers, BitBoard blockers);
     bool isLegalKingMove(const Move& move, const Position& pos, const BoardPerspective& persp);
+    bool isLegalNonKingMove(const Move& move, const Position& pos, const BoardPerspective& persp);
 
     BitBoard computeSinglePawnPushes(const Position& pos, const BoardPerspective& persp);
     BitBoard computeDoublePawnPushes(const Position& pos, const BoardPerspective& persp, BitBoard single_pushes);
     BitBoard computeEnPassant(const Position& pos, const BoardPerspective& persp);
+
+    BitBoard computeWestPawnCaptures(const Position& pos, const BoardPerspective& persp, const BitBoard& relevant_pawns, const BitBoard& takeable_pieces);
+    BitBoard computeEastPawnCaptures(const Position& pos, const BoardPerspective& persp, const BitBoard& relevant_pawns, const BitBoard& takeable_pieces);
+
     // returns bitboard of all moves for a given rook
     BitBoard computeRookMoves(const Position& pos, const BoardPerspective& persp, int rook_index);
     // returns bitboard of all moves in a given direction for a given rook
@@ -113,7 +118,11 @@ class MoveGenerator {
     BitBoard computeBishopMoves(const Position& pos, const BoardPerspective& persp, int bishop_index);
     // returns bitboard of all moves in a given direction for a given bishop
     BitBoard computeBishopRayMoves(const Position& pos, const BoardPerspective& persp, BitBoard ray, const Direction dir, int bishop_index);
+    // returns bitboard of all moves for a given queen 
     BitBoard computeQueenMoves(const Position&  pos, const BoardPerspective& persp, int queen_index);
+
+    // returns bitboard of all attackers of the given square
+    BitBoard getAttackers(const Position& pos, const BoardPerspective& persp, int square_bit_index);
 
   private:
     void extractPawnMoves(BitBoard bb, int offset, MoveType type, MoveVec& moves, PieceType promotion = PieceType::All);

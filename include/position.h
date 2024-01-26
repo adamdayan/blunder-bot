@@ -29,7 +29,7 @@ class BitBoard {
     bool isEmpty() const;
 
     // returns a new bitboard shifted in the specified direction
-    BitBoard shift(Direction dir);
+    BitBoard shift(Direction dir) const;
 
     // returns lowest set bit index on the bitboard which corresponds to squares closer to a1
     // returns. returns -1 if no set bits 

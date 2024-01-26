@@ -30,7 +30,7 @@ bool BitBoard::isEmpty() const {
   return countSetBits() == 0;
 }
 
-BitBoard BitBoard::shift(Direction dir) {
+BitBoard BitBoard::shift(Direction dir) const {
   // TODO: write tests for this
   if (dir == Direction::North) {
     return BitBoard(board << 8);
@@ -92,7 +92,13 @@ void BitBoard::clearBit(int bit_index) {
 }
 
 void BitBoard::clearBitsAbove(int bit_index) {
-  BoardBits mask = (BoardBits(1) << bit_index) - 1;
+  BoardBits mask;
+  if (bit_index == 64) {
+    // required because (1 << 64) wraps around to 1 not 0
+    mask = BoardBits(0) - 1;
+  } else {
+    mask = (BoardBits(1) << bit_index) - 1;
+  }
   board = board & mask;
 }
 

@@ -171,6 +171,20 @@ BitBoard MoveGenerator::computeDoublePawnPushes(const Position& pos, const Board
   return double_push;
 }
 
+BitBoard MoveGenerator::computeWestPawnCaptures(const Position& pos, const BoardPerspective& persp, const BitBoard& relevant_pawns, const BitBoard& takeable_pieces) {
+  // get up-west captures
+  BitBoard west_cap = relevant_pawns.shift(persp.up_west);
+  west_cap &= takeable_pieces;
+  return west_cap;
+}
+
+BitBoard MoveGenerator::computeEastPawnCaptures(const Position& pos, const BoardPerspective& persp, const BitBoard& relevant_pawns, const BitBoard& takeable_pieces) {
+  // get up-west captures
+  BitBoard east_cap = relevant_pawns.shift(persp.up_east);
+  east_cap &= takeable_pieces;
+  return east_cap;
+}
+
 void MoveGenerator::generatePawnCaptures(const Position& pos, const BoardPerspective& persp, MoveVec& moves) {
   BitBoard pawns = pos.getPieceBitBoard(persp.side_to_move, PieceType::Pawn);
   // we will handle pawns about to promote seperately in generatePromotions()
@@ -181,13 +195,11 @@ void MoveGenerator::generatePawnCaptures(const Position& pos, const BoardPerspec
   BitBoard takeable_pieces = enemy_pieces & ~enemy_king;
   
   // get up-west captures
-  BitBoard west_cap = pawns.shift(persp.up_west);
-  west_cap &= takeable_pieces;
-  extractPawnMoves(west_cap, PAWN_WEST_CAPTURE_OFFSET, MoveType::Capture, moves);
+  BitBoard west_cap = computeWestPawnCaptures(pos, persp, pawns, takeable_pieces);
+  extractPawnMoves(west_cap, persp.offset_sign * PAWN_WEST_CAPTURE_OFFSET, MoveType::Capture, moves);
 
-  BitBoard east_cap = pawns.shift(persp.up_east);
-  east_cap &= takeable_pieces;
-  extractPawnMoves(east_cap, PAWN_EAST_CAPTURE_OFFSET, MoveType::Capture, moves);
+  BitBoard east_cap = computeEastPawnCaptures(pos, persp, pawns, takeable_pieces);
+  extractPawnMoves(east_cap, persp.offset_sign * PAWN_EAST_CAPTURE_OFFSET, MoveType::Capture, moves);
 }
 
 void MoveGenerator::generatePromotions(const Position& pos, const BoardPerspective& persp, MoveVec& moves) {
@@ -293,33 +305,29 @@ BitBoard MoveGenerator::computeBishopMoves(const Position& pos, const BoardPersp
 }
 
 BitBoard MoveGenerator::computeBishopRayMoves(const Position& pos, const BoardPerspective& persp, BitBoard ray, const Direction dir, int bishop_index) {
+  int blocking_index;
   BitBoard all_pieces = pos.getAllPiecesBitBoard();
   BitBoard enemy_pieces = pos.getPieceBitBoard(persp.opponent, PieceType::All);
-  int blocking_index;
-  int offset;
+
   BitBoard intersect = all_pieces & ray;
   // if intersection point is with an enemy piece then we can capture
   bool is_capture = !(intersect & enemy_pieces).isEmpty();
   if (dir == Direction::NorthEast) {
     blocking_index = intersect.getLowestSetBit();
-    offset = 9;
     // if intersection is a capture the ray extends an extra square with a capture
-    if (is_capture) blocking_index += offset;
+    if (is_capture) blocking_index += 1;
     if (blocking_index >= 0) ray.clearBitsAbove(blocking_index);
   } else if (dir == Direction::SouthEast) {
     blocking_index = intersect.getHighestSetBit();
-    offset = -7;
-    if (is_capture) blocking_index += offset;
+    if (is_capture) blocking_index -= 1;
     if (blocking_index >= 0) ray.clearBitsBelow(blocking_index);
   } else if (dir == Direction::SouthWest) {
     blocking_index = intersect.getHighestSetBit();
-    offset = -9;
-    if (is_capture) blocking_index += offset;
+    if (is_capture) blocking_index -= 1;
     if (blocking_index >= 0) ray.clearBitsBelow(blocking_index);
   } else if (dir == Direction::NorthWest) {
     blocking_index = intersect.getLowestSetBit();
-    offset = 7;
-    if (is_capture) blocking_index += offset;
+    if (is_capture) blocking_index += 1;
     if (blocking_index >= 0) ray.clearBitsAbove(blocking_index);
   }
 
@@ -364,33 +372,29 @@ BitBoard MoveGenerator::computeRookMoves(const Position& pos, const BoardPerspec
 }
 
 BitBoard MoveGenerator::computeRookRayMoves(const Position& pos, const BoardPerspective& persp, BitBoard ray, Direction dir, int rook_index) {
+  int blocking_index;
   BitBoard all_pieces = pos.getAllPiecesBitBoard();
   BitBoard enemy_pieces = pos.getPieceBitBoard(persp.opponent, PieceType::All);
-  int blocking_index;
-  int offset;
+
   BitBoard intersect = all_pieces & ray;
   // if intersection point is with an enemy piece then we can capture
   bool is_capture = !(intersect & enemy_pieces).isEmpty();
   if (dir == Direction::North) {
     blocking_index = intersect.getLowestSetBit();
-    offset = 8;
     // if intersection is a capture the ray extends an extra square with a capture
-    if (is_capture) blocking_index += offset;
+    if (is_capture) blocking_index += 1;
     if (blocking_index >= 0) ray.clearBitsAbove(blocking_index);
   } else if (dir == Direction::East) {
     blocking_index = intersect.getLowestSetBit();
-    offset = 1;
-    if (is_capture) blocking_index += offset;
+    if (is_capture) blocking_index += 1;
     if (blocking_index >= 0) ray.clearBitsAbove(blocking_index);
   } else if (dir == Direction::South) {
     blocking_index = intersect.getHighestSetBit();
-    offset = -8;
-    if (is_capture) blocking_index += offset;
+    if (is_capture) blocking_index -= 1;
     if (blocking_index >= 0) ray.clearBitsBelow(blocking_index);
   } else if (dir == Direction::West) {
     blocking_index = intersect.getHighestSetBit();
-    offset = -1;
-    if (is_capture) blocking_index += offset;
+    if (is_capture) blocking_index -= 1;
     if (blocking_index >= 0) ray.clearBitsBelow(blocking_index);
   }
 
@@ -469,13 +473,47 @@ bool MoveGenerator::isLegal(const Move& move, const Position& pos, BoardPerspect
 }
 
 bool MoveGenerator::isLegalKingMove(const Move& move, const Position& pos, const BoardPerspective& persp) {
+  return getAttackers(pos, persp, move.dest).isEmpty();
+}
+
+BitBoard MoveGenerator::getAttackers(const Position& pos, const BoardPerspective& persp, int square_bit_index) {
   // most chess moves are symmetrical - we can simply calculate attacks from all
-  // piece types starting at the king's square. If one of those attacks overlaps
-  // with a enemy piece of the same type then the king would be in check on that
-  // square
+  // piece types starting at the given square. If one of those attacks overlaps
+  // with a enemy piece of the same type then the square is attacked
 
-  // bishop moves
+  int square_rank = indexToRank(square_bit_index);
+  int square_file = indexToFile(square_bit_index);
 
+  // could a bishop on the given square "attack" any enemy bishops?
+  BitBoard bishop_moves = computeBishopMoves(pos, persp, square_bit_index); 
+  BitBoard enemy_bishops = pos.getPieceBitBoard(persp.opponent, PieceType::Bishop);
+  BitBoard attacking_bishops = enemy_bishops & bishop_moves;
+
+  // could a rook on the given square "attack" any enemy rooks?
+  BitBoard rook_moves = computeRookMoves(pos, persp, square_bit_index); 
+  BitBoard enemy_rooks = pos.getPieceBitBoard(persp.opponent, PieceType::Rook);
+  BitBoard attacking_rooks =enemy_rooks & rook_moves ;
+
+  // queen is just a combo rook-bishop  
+  BitBoard enemy_queens = pos.getPieceBitBoard(persp.opponent, PieceType::Queen);
+  BitBoard attacking_queens = (bishop_moves & enemy_queens) | (rook_moves & enemy_queens); 
+
+  // could a knight on the given square "attack" any enemy knights?
+  BitBoard enemy_knights = pos.getPieceBitBoard(persp.opponent, PieceType::Knight);
+  BitBoard attacking_knights = knight_moves[square_rank][square_file] & enemy_knights;
+
+  // could a king on the given square "attack" any enemy kings?
+  BitBoard enemy_king = pos.getPieceBitBoard(persp.opponent, PieceType::King);
+  BitBoard attacking_kings = king_moves[square_rank][square_file] & enemy_king;
+
+  // could a pawn on the given square "attack" any enemy pawns?
+  BitBoard enemy_pawns = pos.getPieceBitBoard(persp.opponent, PieceType::Pawn);
+  BitBoard potential_king_position = BitBoard();
+  potential_king_position.setBit(square_bit_index);
+  BitBoard attacking_pawns = computeWestPawnCaptures(pos, persp,potential_king_position, enemy_pawns);
+  attacking_pawns |= computeEastPawnCaptures(pos, persp,potential_king_position, enemy_pawns);
+
+  return attacking_bishops | attacking_rooks | attacking_queens | attacking_knights | attacking_kings | attacking_pawns;
 }
 
 MoveVec MoveGenerator::generateMoves(const Position& pos) {
