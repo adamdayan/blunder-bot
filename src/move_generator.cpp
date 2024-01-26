@@ -311,22 +311,25 @@ BitBoard MoveGenerator::computeBishopRayMoves(const Position& pos, const BoardPe
 
   BitBoard intersect = all_pieces & ray;
   // if intersection point is with an enemy piece then we can capture
-  bool is_capture = !(intersect & enemy_pieces).isEmpty();
   if (dir == Direction::NorthEast) {
     blocking_index = intersect.getLowestSetBit();
+    bool is_capture = enemy_pieces.getBit(blocking_index);
     // if intersection is a capture the ray extends an extra square with a capture
     if (is_capture) blocking_index += 1;
     if (blocking_index >= 0) ray.clearBitsAbove(blocking_index);
   } else if (dir == Direction::SouthEast) {
     blocking_index = intersect.getHighestSetBit();
+    bool is_capture = enemy_pieces.getBit(blocking_index);
     if (is_capture) blocking_index -= 1;
     if (blocking_index >= 0) ray.clearBitsBelow(blocking_index);
   } else if (dir == Direction::SouthWest) {
     blocking_index = intersect.getHighestSetBit();
+    bool is_capture = enemy_pieces.getBit(blocking_index);
     if (is_capture) blocking_index -= 1;
     if (blocking_index >= 0) ray.clearBitsBelow(blocking_index);
   } else if (dir == Direction::NorthWest) {
     blocking_index = intersect.getLowestSetBit();
+    bool is_capture = enemy_pieces.getBit(blocking_index);
     if (is_capture) blocking_index += 1;
     if (blocking_index >= 0) ray.clearBitsAbove(blocking_index);
   }
@@ -378,22 +381,26 @@ BitBoard MoveGenerator::computeRookRayMoves(const Position& pos, const BoardPers
 
   BitBoard intersect = all_pieces & ray;
   // if intersection point is with an enemy piece then we can capture
-  bool is_capture = !(intersect & enemy_pieces).isEmpty();
   if (dir == Direction::North) {
     blocking_index = intersect.getLowestSetBit();
+    // if the blocking piece is an enemy piece then we can capture 
+    bool is_capture = enemy_pieces.getBit(blocking_index);
     // if intersection is a capture the ray extends an extra square with a capture
     if (is_capture) blocking_index += 1;
     if (blocking_index >= 0) ray.clearBitsAbove(blocking_index);
   } else if (dir == Direction::East) {
     blocking_index = intersect.getLowestSetBit();
+    bool is_capture = enemy_pieces.getBit(blocking_index);
     if (is_capture) blocking_index += 1;
     if (blocking_index >= 0) ray.clearBitsAbove(blocking_index);
   } else if (dir == Direction::South) {
     blocking_index = intersect.getHighestSetBit();
+    bool is_capture = enemy_pieces.getBit(blocking_index);
     if (is_capture) blocking_index -= 1;
     if (blocking_index >= 0) ray.clearBitsBelow(blocking_index);
   } else if (dir == Direction::West) {
     blocking_index = intersect.getHighestSetBit();
+    bool is_capture = enemy_pieces.getBit(blocking_index);
     if (is_capture) blocking_index -= 1;
     if (blocking_index >= 0) ray.clearBitsBelow(blocking_index);
   }
@@ -438,7 +445,7 @@ void MoveGenerator::generateKingMoves(const Position& pos, const BoardPerspectiv
 
 // TODO: test this!
 void MoveGenerator::generateCastles(const Position& pos, const BoardPerspective& persp, MoveVec& moves) {
-  // NOTE: this should possible go inside BoardPerspective ?
+  // NOTE: these masks should possibly go inside BoardPerspective ?
   // masks for the squares that must be empty 
   BitBoard kingside_mask;
   BitBoard queenside_mask;
@@ -468,12 +475,75 @@ void MoveGenerator::generateCastles(const Position& pos, const BoardPerspective&
   }
 }
 
-bool MoveGenerator::isLegal(const Move& move, const Position& pos, BoardPerspective& persp, int king_index, BitBoard checkers, BitBoard blockers) {
-
+// TODO: test the absolute hell out of this
+bool MoveGenerator::isLegal(const Move& move, const Position& pos, BoardPerspective& persp, int king_index, BitBoard checkers, BitBoard pinned_pieces) {
+  if (move.source == king_index) {
+    return isLegalKingMove(move, pos, persp);
+  }
+  return isLegalNonKingMove(move, pos, persp, checkers, pinned_pieces);
 }
 
 bool MoveGenerator::isLegalKingMove(const Move& move, const Position& pos, const BoardPerspective& persp) {
   return getAttackers(pos, persp, move.dest).isEmpty();
+}
+
+bool MoveGenerator::isLegalNonKingMove(const Move& move, const Position& pos, const BoardPerspective&, const BitBoard& checkers, const BitBoard& pinned_pieces) {
+  int n_checkers = checkers.countSetBits();
+  // if the king is in double check you must move the king
+  if (n_checkers > 1) {
+    return false;
+  } else if (n_checkers == 1) {
+    // if there is one piece checking the king we must take that piece (as long
+    // as the piece we are using to capture is not itself pinned)
+    if (!checkers.getBit(move.dest) || pinned_pieces.getBit(move.source)) {
+      return false;
+    }
+  } else {
+    // if the king is not in check then we can make any move as long as the piece isn't pinned
+    if (pinned_pieces.getBit(move.source)) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+BitBoard MoveGenerator::getPinnedPieces(const Position& pos, const BoardPerspective& persp) {
+  // using the same principle of symmetry as getAttackers() we can find pinned
+  // pieces if rays from the king's position intersect with rays from enemy
+  // pieces on a square containing a piece of ours
+  int king_index = pos.getPieceBitBoard(persp.side_to_move, PieceType::King).getHighestSetBit();
+  BitBoard our_pieces = pos.getPieceBitBoard(persp.side_to_move, PieceType::All);
+  BoardPerspective opponent_persp(persp.opponent);
+  BitBoard pinned_pieces;
+
+  // bishop rays radiating outward from the king
+  BitBoard outward_bishop_moves = computeBishopMoves(pos, opponent_persp, king_index);
+  // bishop rays radiating from enemy bishops
+  BitBoard inward_bishop_moves; 
+  BitBoard enemy_bishops = pos.getPieceBitBoard(persp.opponent, PieceType::Bishop);
+  // queen is just a combo rook/bishop so we can integrate checking queen pins into bishop and rook checks
+  enemy_bishops |= pos.getPieceBitBoard(persp.opponent, PieceType::Queen);
+  while (!enemy_bishops.isEmpty()) {
+    int bishop_index = enemy_bishops.popHighestSetBit();
+    inward_bishop_moves |= computeBishopMoves(pos, opponent_persp, bishop_index);
+  }
+  pinned_pieces |= outward_bishop_moves & inward_bishop_moves & our_pieces;
+
+  // rook rays radiating outward from the king
+  BitBoard outward_rook_moves = computeRookMoves(pos, opponent_persp, king_index);
+  // rook rays radiating from enemy rooks
+  BitBoard inward_rook_moves; 
+  BitBoard enemy_rooks = pos.getPieceBitBoard(persp.opponent, PieceType::Rook);
+  // queen is just a combo rook/bishop so we can integrate checking queen pins into bishop and rook checks
+  enemy_rooks |= pos.getPieceBitBoard(persp.opponent, PieceType::Queen);
+  while (!enemy_rooks.isEmpty()) {
+    int rook_index = enemy_rooks.popHighestSetBit();
+    inward_rook_moves |= computeRookMoves(pos, opponent_persp, rook_index);
+  }
+  pinned_pieces |= outward_rook_moves & inward_rook_moves & our_pieces;
+
+  return pinned_pieces;
 }
 
 BitBoard MoveGenerator::getAttackers(const Position& pos, const BoardPerspective& persp, int square_bit_index) {
@@ -508,10 +578,10 @@ BitBoard MoveGenerator::getAttackers(const Position& pos, const BoardPerspective
 
   // could a pawn on the given square "attack" any enemy pawns?
   BitBoard enemy_pawns = pos.getPieceBitBoard(persp.opponent, PieceType::Pawn);
-  BitBoard potential_king_position = BitBoard();
-  potential_king_position.setBit(square_bit_index);
-  BitBoard attacking_pawns = computeWestPawnCaptures(pos, persp,potential_king_position, enemy_pawns);
-  attacking_pawns |= computeEastPawnCaptures(pos, persp,potential_king_position, enemy_pawns);
+  BitBoard target_square = BitBoard();
+  target_square.setBit(square_bit_index);
+  BitBoard attacking_pawns = computeWestPawnCaptures(pos, persp,target_square, enemy_pawns);
+  attacking_pawns |= computeEastPawnCaptures(pos, persp,target_square, enemy_pawns);
 
   return attacking_bishops | attacking_rooks | attacking_queens | attacking_knights | attacking_kings | attacking_pawns;
 }

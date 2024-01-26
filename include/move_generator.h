@@ -99,9 +99,10 @@ class MoveGenerator {
     void generateKingMoves(const Position& pos, const BoardPerspective& persp, MoveVec& moves);
     void generateCastles(const Position& pos, const BoardPerspective& persp, MoveVec& moves);
 
+    // returns true if the given move is legal
     bool isLegal(const Move& move, const Position& pos, BoardPerspective& persp, int king_index, BitBoard checkers, BitBoard blockers);
     bool isLegalKingMove(const Move& move, const Position& pos, const BoardPerspective& persp);
-    bool isLegalNonKingMove(const Move& move, const Position& pos, const BoardPerspective& persp);
+    bool isLegalNonKingMove(const Move& move, const Position& pos, const BoardPerspective& persp, const BitBoard& checkers, const BitBoard& pinned_pieces);
 
     BitBoard computeSinglePawnPushes(const Position& pos, const BoardPerspective& persp);
     BitBoard computeDoublePawnPushes(const Position& pos, const BoardPerspective& persp, BitBoard single_pushes);
@@ -123,6 +124,9 @@ class MoveGenerator {
 
     // returns bitboard of all attackers of the given square
     BitBoard getAttackers(const Position& pos, const BoardPerspective& persp, int square_bit_index);
+
+    // returns a bitboard of all pinned pieces
+    BitBoard getPinnedPieces(const Position& pos, const BoardPerspective& persp);
 
   private:
     void extractPawnMoves(BitBoard bb, int offset, MoveType type, MoveVec& moves, PieceType promotion = PieceType::All);

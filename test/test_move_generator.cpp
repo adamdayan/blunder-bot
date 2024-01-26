@@ -276,3 +276,24 @@ TEST_CASE("test true isLegalKingMove()", "[move_generator]") {
   Move move(0, 8, MoveType::Quiet);
   REQUIRE(move_gen.isLegalKingMove(move, pos, persp));
 }
+
+TEST_CASE("test getAttackers()", "[move_generator]") {
+  MoveGenerator move_gen;
+  std::string attacked_square_position = "1p1R4/8/N2B4/8/8/8/8/1R6 b - - 0 0";
+  Position pos(attacked_square_position);
+  BoardPerspective persp(pos.getSideToMove());
+  BitBoard attackers = move_gen.getAttackers(pos, persp, 57);
+  REQUIRE(attackers.countSetBits() == 4);
+  REQUIRE(attackers.board == pos.getPieceBitBoard(persp.opponent, PieceType::All).board);
+}
+
+TEST_CASE("test getPinnedPieces()", "[move_generator]") {
+  MoveGenerator move_gen;
+  std::string pinned_position = "8/8/8/8/3b4/8/1P6/KQ1r4 w - - 0 0";
+  Position pos(pinned_position);
+  BoardPerspective persp(pos.getSideToMove());
+  BitBoard pinned_pieces = move_gen.getPinnedPieces(pos, persp);
+  REQUIRE(pinned_pieces.countSetBits() == 2);
+  REQUIRE(pinned_pieces.getBit(1));
+  REQUIRE(pinned_pieces.getBit(9));
+}
