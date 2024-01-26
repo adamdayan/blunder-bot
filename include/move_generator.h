@@ -105,7 +105,13 @@ class MoveGenerator {
     BitBoard computeSinglePawnPushes(const Position& pos, const BoardPerspective& persp);
     BitBoard computeDoublePawnPushes(const Position& pos, const BoardPerspective& persp, BitBoard single_pushes);
     BitBoard computeEnPassant(const Position& pos, const BoardPerspective& persp);
+    // returns bitboard of all moves for a given rook
+    BitBoard computeRookMoves(const Position& pos, const BoardPerspective& persp, int rook_index);
+    // returns bitboard of all moves in a given direction for a given rook
     BitBoard computeRookRayMoves(const Position& pos, const BoardPerspective& persp, BitBoard ray, const Direction dir, int rook_index);
+    // returns bitboard of all moves for a given bishop
+    BitBoard computeBishopMoves(const Position& pos, const BoardPerspective& persp, int bishop_index);
+    // returns bitboard of all moves in a given direction for a given bishop
     BitBoard computeBishopRayMoves(const Position& pos, const BoardPerspective& persp, BitBoard ray, const Direction dir, int bishop_index);
     BitBoard computeQueenMoves(const Position&  pos, const BoardPerspective& persp, int queen_index);
 

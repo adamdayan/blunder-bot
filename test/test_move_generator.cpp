@@ -110,6 +110,17 @@ TEST_CASE("test generateRookMoves()", "[move_generator]") {
   REQUIRE(moves[1].move_type == MoveType::Capture);
 }
 
+TEST_CASE("test generateRookMoves() board edge", "[move_generator]") {
+  MoveGenerator move_gen;
+  std::string rook_position = "8/8/8/7P/6PR/7P/8/8 w - - 0 0";
+  Position pos(rook_position);
+  BoardPerspective persp(pos.getSideToMove());
+  MoveVec moves;
+  move_gen.generateRookMoves(pos, persp, moves);  
+
+  REQUIRE(moves.size() == 0);
+}
+
 TEST_CASE("test generateQueenMoves()", "[move_generator]") {
   MoveGenerator move_gen;
   std::string queen_position = "8/8/8/8/2PPp3/2pQP3/2pPP3/8 w - - 0 0";
