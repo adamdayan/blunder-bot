@@ -98,6 +98,11 @@ class Position {
     Colour getSideToMove() const;
     bool canCastle(Colour colour, CastlingType castling_type) const;
 
+    void addPiece(Colour colour, PieceType piece_type, int square_bit_index);
+    void removePiece(Colour colour, PieceType piece_type, int square_bit_index);
+    // returns piece colour and type on given square
+    std::pair<Colour, PieceType> getColourPieceType(int square_bit_index) const;
+
     // methods needed for detecting draws
     bool isDrawBy50Moves() const;
     // TODO: complete

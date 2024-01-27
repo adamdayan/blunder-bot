@@ -54,7 +54,7 @@ TEST_CASE("test generateEnPassant()", "[move_generator]") {
   REQUIRE(moves[0].move_type == MoveType::EnPassantCapture);
 }
 
-TEST_CASE("test generateKnightMoves()", "[move_generator]") {
+TEST_CASE("test easy generateKnightMoves()", "[move_generator]") {
   MoveGenerator move_gen;
   std::string knight_position = "8/8/8/8/4r3/8/3N4/8 w - - 0 0";
   Position pos(knight_position);
@@ -70,6 +70,17 @@ TEST_CASE("test generateKnightMoves()", "[move_generator]") {
   for (int i = 0; i < 5; i++) {
     REQUIRE(moves[i].move_type == MoveType::Quiet);
   }
+}
+
+TEST_CASE("test corner generateKnightMoves()", "[move_generator]") {
+  MoveGenerator move_gen;
+  std::string knight_position = "8/8/8/8/8/8/8/6N1 w - - 0 0";
+  Position pos(knight_position);
+  BoardPerspective persp(pos.getSideToMove());
+  MoveVec moves;
+  move_gen.generateKnightMoves(pos, persp, moves);
+
+  REQUIRE(moves.size() == 3);
 }
 
 TEST_CASE("test generateBishopMoves()", "[move_generator]") {
@@ -261,11 +272,14 @@ TEST_CASE("test false isLegalKingMove()", "[move_generator]") {
   std::string illegal_king_move_position = "1rr5/8/8/8/8/8/P7/K7 w - - 0 0";
   Position pos(illegal_king_move_position);
   BoardPerspective persp(pos.getSideToMove());
+  int king_index = pos.getPieceBitBoard(persp.side_to_move, PieceType::King).getHighestSetBit();
+  BitBoard checkers = move_gen.getAttackers(pos, persp, king_index);
+
   Move move0(0, 1, MoveType::Quiet);
-  REQUIRE_FALSE(move_gen.isLegalKingMove(move0, pos, persp));
+  REQUIRE_FALSE(move_gen.isLegalKingMove(move0, pos, persp, checkers));
 
   Move move1(0, 9, MoveType::Quiet);
-  REQUIRE_FALSE(move_gen.isLegalKingMove(move1, pos, persp));
+  REQUIRE_FALSE(move_gen.isLegalKingMove(move1, pos, persp, checkers));
 }
 
 TEST_CASE("test true isLegalKingMove()", "[move_generator]") {
@@ -273,8 +287,11 @@ TEST_CASE("test true isLegalKingMove()", "[move_generator]") {
   std::string illegal_king_move_position = "1rr5/8/8/8/8/P7/8/K7 w - - 0 0";
   Position pos(illegal_king_move_position);
   BoardPerspective persp(pos.getSideToMove());
+  int king_index = pos.getPieceBitBoard(persp.side_to_move, PieceType::King).getHighestSetBit();
+  BitBoard checkers = move_gen.getAttackers(pos, persp, king_index);
+
   Move move(0, 8, MoveType::Quiet);
-  REQUIRE(move_gen.isLegalKingMove(move, pos, persp));
+  REQUIRE(move_gen.isLegalKingMove(move, pos, persp, checkers));
 }
 
 TEST_CASE("test getAttackers()", "[move_generator]") {
@@ -297,3 +314,74 @@ TEST_CASE("test getPinnedPieces()", "[move_generator]") {
   REQUIRE(pinned_pieces.getBit(1));
   REQUIRE(pinned_pieces.getBit(9));
 }
+
+TEST_CASE("test pinned + check isLegal()", "[move_generator]") {
+  MoveGenerator move_gen;
+  std::string pinned_check_position = "8/8/8/Q1pk4/3p4/8/B7/8 b - - 0 0";
+  Position pos(pinned_check_position);
+  BoardPerspective persp(pos.getSideToMove());
+  int king_index = pos.getPieceBitBoard(Colour::Black, PieceType::King).getHighestSetBit();
+  BitBoard checkers = move_gen.getAttackers(pos, persp, king_index);
+  BitBoard pinned_pieces = move_gen.getPinnedPieces(pos, persp);
+
+  Move pinned_move(rankFileToIndex(4, 2), rankFileToIndex(3, 2), MoveType::Quiet);
+  REQUIRE_FALSE(move_gen.isLegal(pinned_move, pos, persp, king_index, checkers, pinned_pieces));
+
+  Move check_move(king_index, rankFileToIndex(3, 2), MoveType::Quiet);
+  REQUIRE_FALSE(move_gen.isLegal(check_move, pos, persp, king_index, checkers, pinned_pieces));
+
+  Move pawn_move(rankFileToIndex(3, 3), rankFileToIndex(4, 3), MoveType::Quiet);
+  REQUIRE_FALSE(move_gen.isLegal(pawn_move, pos, persp, king_index, checkers, pinned_pieces));
+
+  Move legal_move(king_index, rankFileToIndex(4, 4), MoveType::Quiet);
+  REQUIRE(move_gen.isLegal(legal_move, pos, persp, king_index, checkers, pinned_pieces));
+
+  legal_move = Move(king_index,rankFileToIndex(3, 4), MoveType::Quiet);
+  REQUIRE(move_gen.isLegal(legal_move, pos, persp, king_index, checkers, pinned_pieces));
+
+  legal_move = Move(king_index,rankFileToIndex(5, 4), MoveType::Quiet);
+  REQUIRE(move_gen.isLegal(legal_move, pos, persp, king_index, checkers, pinned_pieces));
+
+  legal_move = Move(king_index,rankFileToIndex(5, 3), MoveType::Quiet);
+  REQUIRE(move_gen.isLegal(legal_move, pos, persp, king_index, checkers, pinned_pieces));
+
+  legal_move = Move(king_index,rankFileToIndex(5, 2), MoveType::Quiet);
+  REQUIRE(move_gen.isLegal(legal_move, pos, persp, king_index, checkers, pinned_pieces));
+}
+
+TEST_CASE("test illegal queenside castling", "[move_generator]") {
+  MoveGenerator move_gen;
+  std::string castle_position = "8/8/8/6b1/8/8/8/R3K3 w Q - 0 0";
+  Position pos(castle_position);
+  BoardPerspective persp(pos.getSideToMove());
+  MoveVec moves;
+  int king_index = pos.getPieceBitBoard(persp.side_to_move, PieceType::King).getHighestSetBit();
+  BitBoard checkers = move_gen.getAttackers(pos, persp, king_index);
+
+  move_gen.generateCastles(pos, persp, moves);
+  REQUIRE(moves.size() == 1);
+
+  REQUIRE_FALSE(move_gen.isLegalCastles(moves[0], pos, persp, checkers));
+}
+
+TEST_CASE("test generateMoves() initial position move count", "[move_generator]") {
+  MoveGenerator move_gen;
+  std::string init_position = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+  Position pos(init_position);
+
+  MoveVec moves = move_gen.generateMoves(pos);
+  REQUIRE(moves.size() == 20);
+}
+
+TEST_CASE("test generateMoves() kiwipete position move count", "[move_generator]") {
+  MoveGenerator move_gen;
+  std::string kp_position = "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq -";
+  Position pos(kp_position);
+
+  MoveVec moves = move_gen.generateMoves(pos);
+  for (const auto& move : moves) {
+    move.print(pos);
+  }
+  REQUIRE(moves.size() == 48);
+}
+

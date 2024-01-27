@@ -1,3 +1,5 @@
+#include <algorithm>
+
 #include "move_generator.h"
 #include "constants.h"
 #include "position.h"
@@ -82,18 +84,33 @@ BitBoard precomputeRay(int start_rank, int start_file, Direction dir) {
 // generates all possible knight moves from a given square
 BitBoard precomputeKnightMoves(int rank, int file) {
   BitBoard bb;
-  std::array<int, 4> deltas{6, 15, 17, 10};
-
-  int index = rankFileToIndex(rank, file);
-  for (const auto& delta : deltas) {
-    if (index + delta <= 63) {
-      bb.setBit(index + delta);
-    }
-    if (index - delta >= 0) {
-      bb.setBit(index - delta);
-    }
+  if (rank + 2 < 8 && file + 1 < 8) {
+    bb.setBit(rank + 2, file + 1);
+  }
+  if (rank + 2 < 8 && file - 1 >= 0) {
+    bb.setBit(rank + 2, file - 1);
   }
 
+  if (rank + 1 < 8 && file + 2 < 8) {
+    bb.setBit(rank + 1, file + 2);
+  }
+  if (rank + 1 < 8 && file - 2 >= 0) {
+    bb.setBit(rank + 1, file - 2);
+  }
+
+  if (rank - 2 >= 0 && file + 1 < 8) {
+    bb.setBit(rank - 2, file + 1);
+  }
+  if (rank - 2 >= 0 && file - 1 >= 0) {
+    bb.setBit(rank - 2, file - 1);
+  }
+
+  if (rank - 1 >= 0 && file + 2 < 8) {
+    bb.setBit(rank - 1, file + 2);
+  }
+  if (rank - 1 >= 0 && file - 2 >= 0) {
+    bb.setBit(rank - 1, file - 2);
+  }
   return bb;
 }
 
@@ -115,6 +132,15 @@ BitBoard precomputeKingMoves(int rank, int file) {
     }
   }
   return bb;
+}
+
+void Move::print(const Position& pos) const {
+  std::pair<Colour, PieceType> colour_piece = pos.getColourPieceType(source);
+  std::string piece_name = piece_to_string[colour_piece.first][colour_piece.second].c_str();
+  std::string source_name = indexToName(source);
+  std::string dest_name = indexToName(dest);
+  std::string type_name = moveTypeToName(move_type);
+  printf("%s %s %s %s\n", piece_name.c_str(), source_name.c_str(), dest_name.c_str(), type_name.c_str());
 }
 
 void MoveGenerator::extractPawnMoves(BitBoard bb, int offset, MoveType type, MoveVec& moves, PieceType promotion) {
@@ -196,10 +222,12 @@ void MoveGenerator::generatePawnCaptures(const Position& pos, const BoardPerspec
   
   // get up-west captures
   BitBoard west_cap = computeWestPawnCaptures(pos, persp, pawns, takeable_pieces);
-  extractPawnMoves(west_cap, persp.offset_sign * PAWN_WEST_CAPTURE_OFFSET, MoveType::Capture, moves);
+  int west_offset = persp.side_to_move == Colour::White ? WHITE_PAWN_WEST_CAPTURE_OFFSET : BLACK_PAWN_WEST_CAPTURE_OFFSET;
+  extractPawnMoves(west_cap, west_offset, MoveType::Capture, moves);
 
   BitBoard east_cap = computeEastPawnCaptures(pos, persp, pawns, takeable_pieces);
-  extractPawnMoves(east_cap, persp.offset_sign * PAWN_EAST_CAPTURE_OFFSET, MoveType::Capture, moves);
+  int east_offset = persp.side_to_move == Colour::White ? WHITE_PAWN_EAST_CAPTURE_OFFSET : BLACK_PAWN_EAST_CAPTURE_OFFSET;
+  extractPawnMoves(east_cap, east_offset, MoveType::Capture, moves);
 }
 
 void MoveGenerator::generatePromotions(const Position& pos, const BoardPerspective& persp, MoveVec& moves) {
@@ -224,9 +252,12 @@ void MoveGenerator::generatePromotions(const Position& pos, const BoardPerspecti
   // check there are no blocking piece
   single_push &= ~pos.getAllPiecesBitBoard();
 
+  int west_offset = persp.side_to_move == Colour::White ? WHITE_PAWN_WEST_CAPTURE_OFFSET : BLACK_PAWN_WEST_CAPTURE_OFFSET;
+  int east_offset = persp.side_to_move == Colour::White ? WHITE_PAWN_EAST_CAPTURE_OFFSET : BLACK_PAWN_EAST_CAPTURE_OFFSET;
+
   for (int piece = PieceType::Knight; piece < PieceType::King; piece++) {
-    extractPawnMoves(west_cap, persp.offset_sign * PAWN_WEST_CAPTURE_OFFSET, MoveType::Capture, moves, static_cast<PieceType>(piece));
-    extractPawnMoves(east_cap, persp.offset_sign * PAWN_EAST_CAPTURE_OFFSET, MoveType::Capture, moves, static_cast<PieceType>(piece));
+    extractPawnMoves(west_cap, west_offset, MoveType::Capture, moves, static_cast<PieceType>(piece));
+    extractPawnMoves(east_cap, east_offset, MoveType::Capture, moves, static_cast<PieceType>(piece));
     extractPawnMoves(single_push, persp.offset_sign * SINGLE_PAWN_PUSH_OFFSET, MoveType::Quiet, moves, static_cast<PieceType>(piece));
   }
 }
@@ -242,14 +273,17 @@ void MoveGenerator::generateEnPassant(const Position& pos, const BoardPerspectiv
     return;
   }
 
+  int west_offset = persp.side_to_move == Colour::White ? WHITE_PAWN_WEST_CAPTURE_OFFSET : BLACK_PAWN_WEST_CAPTURE_OFFSET;
+  int east_offset = persp.side_to_move == Colour::White ? WHITE_PAWN_EAST_CAPTURE_OFFSET : BLACK_PAWN_EAST_CAPTURE_OFFSET;
+
   // compute possible en passant captures
   BitBoard west_cap = pawns.shift(persp.up_west);
   west_cap &= enpassant_targets;
-  extractPawnMoves(west_cap, persp.offset_sign * PAWN_WEST_CAPTURE_OFFSET, MoveType::EnPassantCapture, moves);
+  extractPawnMoves(west_cap, west_offset, MoveType::EnPassantCapture, moves);
 
   BitBoard east_cap = pawns.shift(persp.up_east);
   east_cap &= enpassant_targets;
-  extractPawnMoves(east_cap, persp.offset_sign * PAWN_EAST_CAPTURE_OFFSET, MoveType::EnPassantCapture, moves);
+  extractPawnMoves(east_cap, east_offset, MoveType::EnPassantCapture, moves);
 } 
 
 void MoveGenerator::generateKnightMoves(const Position& pos, const BoardPerspective& persp, MoveVec& moves) {
@@ -478,12 +512,17 @@ void MoveGenerator::generateCastles(const Position& pos, const BoardPerspective&
 // TODO: test the absolute hell out of this
 bool MoveGenerator::isLegal(const Move& move, const Position& pos, BoardPerspective& persp, int king_index, BitBoard checkers, BitBoard pinned_pieces) {
   if (move.source == king_index) {
-    return isLegalKingMove(move, pos, persp);
+    return isLegalKingMove(move, pos, persp, checkers);
+  } else if (move.move_type == MoveType::EnPassantCapture) {
+    return isLegalEnpassant(move, pos, persp, checkers, pinned_pieces);
   }
   return isLegalNonKingMove(move, pos, persp, checkers, pinned_pieces);
 }
 
-bool MoveGenerator::isLegalKingMove(const Move& move, const Position& pos, const BoardPerspective& persp) {
+bool MoveGenerator::isLegalKingMove(const Move& move, const Position& pos, const BoardPerspective& persp, const BitBoard& checkers) {
+  if (move.move_type == MoveType::KingsideCastle || move.move_type == MoveType::QueensideCastle) {
+    return isLegalCastles(move, pos, persp, checkers);
+  }
   return getAttackers(pos, persp, move.dest).isEmpty();
 }
 
@@ -506,6 +545,42 @@ bool MoveGenerator::isLegalNonKingMove(const Move& move, const Position& pos, co
   }
 
   return true;
+}
+
+bool MoveGenerator::isLegalCastles(const Move& move, const Position& pos, const BoardPerspective& persp, const BitBoard& checkers) {
+  if (checkers.countSetBits() > 0) {
+    return false;
+  }
+
+  // ensure king isn't moving through check when castling
+  BoardBits relevant_square_mask = CASTLE_MASKS[persp.side_to_move].find(move.move_type)->second;
+  BitBoard relevant_squares(relevant_square_mask);
+
+  while (!relevant_squares.isEmpty()) {
+    int square_index = relevant_squares.popHighestSetBit();
+    if (!getAttackers(pos, persp, square_index).isEmpty()) {
+      return false;
+    }
+  }
+  return true;
+}
+
+
+
+// en passant requires special handling because it's only move where capturing
+// piece does not end up on same square as captured piece. specifically,
+// horizontal pins would be missed with normal move checking
+bool MoveGenerator::isLegalEnpassant(const Move& move, const Position& pos, const BoardPerspective& persp, const BitBoard& checkers, const BitBoard& pinned_pieces) {
+  // NOTE: I am doing fewer checks than "purple-bot" here. he runs full non king
+  // legal move checks on the altered pos - double check I am correct that only
+  // concern is horizontal pin
+  Position pos_copy = pos;
+  pos_copy.removePiece(persp.opponent, PieceType::Pawn, move.dest);
+  BitBoard pinned_en_passant = getPinnedPieces(pos_copy, persp);
+  if (pinned_en_passant.getBit(move.source)) {
+    return false;
+  }
+  return isLegalNonKingMove(move, pos, persp, checkers, pinned_pieces);
 }
 
 BitBoard MoveGenerator::getPinnedPieces(const Position& pos, const BoardPerspective& persp) {
@@ -589,7 +664,32 @@ BitBoard MoveGenerator::getAttackers(const Position& pos, const BoardPerspective
 MoveVec MoveGenerator::generateMoves(const Position& pos) {
   // directions switch depending on side to move
   BoardPerspective persp(pos.getSideToMove());
+  int king_index = pos.getPieceBitBoard(persp.side_to_move, PieceType::King).getHighestSetBit();
+  BitBoard checkers = getAttackers(pos, persp, king_index);
+  BitBoard pinned_pieces = getPinnedPieces(pos, persp);
 
+  MoveVec moves;
+
+  // generates all the pseudo legal moves
+  generatePawnMoves(pos, persp, moves);
+  generateKnightMoves(pos, persp, moves);
+  generateBishopMoves(pos, persp, moves);
+  generateRookMoves(pos, persp, moves);
+  generateQueenMoves(pos, persp, moves);
+  generateQueenMoves(pos, persp, moves);
+  generateKingMoves(pos, persp, moves);
+  generateCastles(pos, persp, moves);
+
+  // lambda that returns true if a move is illegal
+  auto is_not_legal = [this, &pos , &persp, &checkers, &pinned_pieces, king_index](Move& move) {
+    return !this->isLegal(move, pos, persp, king_index, checkers, pinned_pieces);
+  };
+  // prunes illegal moves from pseudo-legal moves
+  auto legal_moves_end = std::remove_if(moves.begin(), moves.end(), is_not_legal);
+  moves.erase(legal_moves_end, moves.end());
+
+  // NOTE: do I really want to be returning this potentially large vector by value?
+  return moves;
 }
 
 MoveGenerator::MoveGenerator() {

@@ -355,6 +355,29 @@ bool Position::canCastle(Colour colour, CastlingType castling_type) const {
   return castling_rights[colour][castling_type];
 }
 
+void Position::addPiece(Colour colour, PieceType piece_type, int square_bit_index) {
+  bit_boards[colour][piece_type].setBit(square_bit_index);
+  bit_boards[colour][PieceType::All].setBit(square_bit_index);
+  all_pieces.setBit(square_bit_index);
+}
+
+void Position::removePiece(Colour colour, PieceType piece_type, int square_bit_index) {
+  bit_boards[colour][piece_type].clearBit(square_bit_index);
+  bit_boards[colour][PieceType::All].clearBit(square_bit_index);
+  all_pieces.clearBit(square_bit_index);
+}
+
+std::pair<Colour, PieceType> Position::getColourPieceType(int square_bit_index) const {
+  for (int colour = Colour::White; colour <= Colour::Black; colour++) {
+    for (int piece = PieceType::Pawn; piece < PieceType::All; piece++) {
+      if (bit_boards[colour][piece].getBit(square_bit_index)) {
+        return std::pair<Colour, PieceType>(static_cast<Colour>(colour),
+                                            static_cast<PieceType>(piece));
+      }
+    }
+  }
+}
+
 bool Position::isDrawBy50Moves() const {
   return halfmove_clock >= MAX_HALFMOVE_CNT;
 }

@@ -8,20 +8,14 @@
 #include "utils.h"
 #include "constants.h"
 
-enum MoveType {
-  Quiet,
-  Capture,
-  EnPassantCapture,
-  KingsideCastle,
-  QueensideCastle,
-  // TODO: add promotion?
-};
 
 // TODO: decide what on earth this class will look like
 class Move {
   public:
     // promotion=PieceType::All means no promotion
     Move(int source, int dest, MoveType move_type, PieceType promotion = PieceType::All) : source(source), dest(dest), move_type(move_type), promotion(promotion) {};
+    // prints a more human readable move description
+    void print(const Position& pos) const;
 
     int source;
     int dest;
@@ -99,10 +93,12 @@ class MoveGenerator {
     void generateKingMoves(const Position& pos, const BoardPerspective& persp, MoveVec& moves);
     void generateCastles(const Position& pos, const BoardPerspective& persp, MoveVec& moves);
 
-    // returns true if the given move is legal
-    bool isLegal(const Move& move, const Position& pos, BoardPerspective& persp, int king_index, BitBoard checkers, BitBoard blockers);
-    bool isLegalKingMove(const Move& move, const Position& pos, const BoardPerspective& persp);
+    // returns true if the given move is legal. used to prune pseudo-legal moves
+    bool isLegal(const Move& move, const Position& pos, BoardPerspective& persp, int king_index, BitBoard checkers, BitBoard pinned_pieces);
+    bool isLegalKingMove(const Move& move, const Position& pos, const BoardPerspective& persp, const BitBoard& checkers);
     bool isLegalNonKingMove(const Move& move, const Position& pos, const BoardPerspective& persp, const BitBoard& checkers, const BitBoard& pinned_pieces);
+    bool isLegalCastles(const Move& move, const Position& pos, const BoardPerspective& persp, const BitBoard& checkers);
+    bool isLegalEnpassant(const Move& move, const Position& pos, const BoardPerspective& persp, const BitBoard& checkers, const BitBoard& pinned_pieces);
 
     BitBoard computeSinglePawnPushes(const Position& pos, const BoardPerspective& persp);
     BitBoard computeDoublePawnPushes(const Position& pos, const BoardPerspective& persp, BitBoard single_pushes);
@@ -125,7 +121,7 @@ class MoveGenerator {
     // returns bitboard of all attackers of the given square
     BitBoard getAttackers(const Position& pos, const BoardPerspective& persp, int square_bit_index);
 
-    // returns a bitboard of all pinned pieces
+    // returns a bitboard of all absolutely pinned pieces
     BitBoard getPinnedPieces(const Position& pos, const BoardPerspective& persp);
 
   private:

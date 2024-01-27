@@ -39,12 +39,15 @@ enum CastlingType {
   Queenside
 };
 
+enum MoveType {
+  Quiet,
+  Capture,
+  EnPassantCapture,
+  KingsideCastle,
+  QueensideCastle,
+  // TODO: add promotion?
+};
 
-
-const std::array<std::array<std::string, 6>, 2> piece_to_string = {{
-    {{"P", "N", "B", "R", "Q", "K"}},
-    {{"p", "n", "b", "r", "q", "k"}},
-}};
 
 // 1-indexed like on the chess board
 constexpr BoardBits RANK1 = 0xFF;
@@ -65,6 +68,13 @@ constexpr BoardBits FILEF = FILEA << 5;
 constexpr BoardBits FILEG = FILEA << 6;
 constexpr BoardBits FILEH = FILEA << 7;
 
+const std::array<std::string, 8> file_to_name = {"A", "B", "C", "D", "E", "F", "G", "H"};
+
+const std::array<std::array<std::string, 6>, 2> piece_to_string = {{
+    {{"P", "N", "B", "R", "Q", "K"}},
+    {{"p", "n", "b", "r", "q", "k"}},
+}};
+
 // NOTE: is it bad that the piece2string and string2piece maps are not the same
 // type?
 const std::unordered_map<std::string, std::pair<Colour, PieceType>> string_to_piece = {
@@ -83,7 +93,13 @@ const std::unordered_map<std::string, std::pair<Colour, PieceType>> string_to_pi
   {"k", {Colour::Black, PieceType::King}},
 };
 
-// NOTE: it's possible these are the wrong way around and my VSCode is rendering
+// squares the king must move through to castle. indexed by (Colour, CastlingType)
+const std::array<std::unordered_map<MoveType, BoardBits>,2> CASTLE_MASKS = {{
+  {{MoveType::KingsideCastle, 96}, {MoveType::QueensideCastle, 12}},
+  {{MoveType::KingsideCastle, 6917529027641081856}, {MoveType::QueensideCastle, 864691128455135232}}
+}};
+
+// NOTE: it's possible these colours are the wrong way around and my VSCode is rendering
 // them weirdly
 const std::array<std::array<std::string, 6>, 2> piece_to_pretty_string = {{
   {{"♟", "♞", "♝", "♜", "♛", "♚"}},
@@ -98,7 +114,10 @@ constexpr int MAX_HALFMOVE_CNT = 100;
 
 constexpr int SINGLE_PAWN_PUSH_OFFSET = 8;
 constexpr int DOUBLE_PAWN_PUSH_OFFSET = 16;
-constexpr int PAWN_WEST_CAPTURE_OFFSET = 9;
-constexpr int PAWN_EAST_CAPTURE_OFFSET = 7;
+
+constexpr int WHITE_PAWN_EAST_CAPTURE_OFFSET = 9;
+constexpr int WHITE_PAWN_WEST_CAPTURE_OFFSET = 7;
+constexpr int BLACK_PAWN_EAST_CAPTURE_OFFSET = -7;
+constexpr int BLACK_PAWN_WEST_CAPTURE_OFFSET = -9;
 
 #endif // CONSTANTS_H
