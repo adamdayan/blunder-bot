@@ -340,6 +340,7 @@ BitBoard MoveGenerator::computeBishopMoves(const Position& pos, const BoardPersp
 
 BitBoard MoveGenerator::computeBishopRayMoves(const Position& pos, const BoardPerspective& persp, BitBoard ray, const Direction dir, int bishop_index) {
   int blocking_index;
+  bool is_capture = false;
   BitBoard all_pieces = pos.getAllPiecesBitBoard();
   BitBoard enemy_pieces = pos.getPieceBitBoard(persp.opponent, PieceType::All);
 
@@ -347,23 +348,23 @@ BitBoard MoveGenerator::computeBishopRayMoves(const Position& pos, const BoardPe
   // if intersection point is with an enemy piece then we can capture
   if (dir == Direction::NorthEast) {
     blocking_index = intersect.getLowestSetBit();
-    bool is_capture = enemy_pieces.getBit(blocking_index);
+    if (blocking_index >= 0) is_capture = enemy_pieces.getBit(blocking_index);
     // if intersection is a capture the ray extends an extra square with a capture
     if (is_capture) blocking_index += 1;
     if (blocking_index >= 0) ray.clearBitsAbove(blocking_index);
   } else if (dir == Direction::SouthEast) {
     blocking_index = intersect.getHighestSetBit();
-    bool is_capture = enemy_pieces.getBit(blocking_index);
+    if (blocking_index >= 0) is_capture = enemy_pieces.getBit(blocking_index);
     if (is_capture) blocking_index -= 1;
     if (blocking_index >= 0) ray.clearBitsBelow(blocking_index);
   } else if (dir == Direction::SouthWest) {
     blocking_index = intersect.getHighestSetBit();
-    bool is_capture = enemy_pieces.getBit(blocking_index);
+    if (blocking_index >= 0) is_capture = enemy_pieces.getBit(blocking_index);
     if (is_capture) blocking_index -= 1;
     if (blocking_index >= 0) ray.clearBitsBelow(blocking_index);
   } else if (dir == Direction::NorthWest) {
     blocking_index = intersect.getLowestSetBit();
-    bool is_capture = enemy_pieces.getBit(blocking_index);
+    if (blocking_index >= 0) is_capture = enemy_pieces.getBit(blocking_index);
     if (is_capture) blocking_index += 1;
     if (blocking_index >= 0) ray.clearBitsAbove(blocking_index);
   }
@@ -410,6 +411,7 @@ BitBoard MoveGenerator::computeRookMoves(const Position& pos, const BoardPerspec
 
 BitBoard MoveGenerator::computeRookRayMoves(const Position& pos, const BoardPerspective& persp, BitBoard ray, Direction dir, int rook_index) {
   int blocking_index;
+  bool is_capture = false;
   BitBoard all_pieces = pos.getAllPiecesBitBoard();
   BitBoard enemy_pieces = pos.getPieceBitBoard(persp.opponent, PieceType::All);
 
@@ -418,23 +420,23 @@ BitBoard MoveGenerator::computeRookRayMoves(const Position& pos, const BoardPers
   if (dir == Direction::North) {
     blocking_index = intersect.getLowestSetBit();
     // if the blocking piece is an enemy piece then we can capture 
-    bool is_capture = enemy_pieces.getBit(blocking_index);
+    if (blocking_index >= 0) is_capture = enemy_pieces.getBit(blocking_index);
     // if intersection is a capture the ray extends an extra square with a capture
     if (is_capture) blocking_index += 1;
     if (blocking_index >= 0) ray.clearBitsAbove(blocking_index);
   } else if (dir == Direction::East) {
     blocking_index = intersect.getLowestSetBit();
-    bool is_capture = enemy_pieces.getBit(blocking_index);
+    if (blocking_index >= 0) is_capture = enemy_pieces.getBit(blocking_index);
     if (is_capture) blocking_index += 1;
     if (blocking_index >= 0) ray.clearBitsAbove(blocking_index);
   } else if (dir == Direction::South) {
     blocking_index = intersect.getHighestSetBit();
-    bool is_capture = enemy_pieces.getBit(blocking_index);
+    if (blocking_index >= 0) is_capture = enemy_pieces.getBit(blocking_index);
     if (is_capture) blocking_index -= 1;
     if (blocking_index >= 0) ray.clearBitsBelow(blocking_index);
   } else if (dir == Direction::West) {
     blocking_index = intersect.getHighestSetBit();
-    bool is_capture = enemy_pieces.getBit(blocking_index);
+    if (blocking_index >= 0) is_capture = enemy_pieces.getBit(blocking_index);
     if (is_capture) blocking_index -= 1;
     if (blocking_index >= 0) ray.clearBitsBelow(blocking_index);
   }
@@ -675,7 +677,6 @@ MoveVec MoveGenerator::generateMoves(const Position& pos) {
   generateKnightMoves(pos, persp, moves);
   generateBishopMoves(pos, persp, moves);
   generateRookMoves(pos, persp, moves);
-  generateQueenMoves(pos, persp, moves);
   generateQueenMoves(pos, persp, moves);
   generateKingMoves(pos, persp, moves);
   generateCastles(pos, persp, moves);

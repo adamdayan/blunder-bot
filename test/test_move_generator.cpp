@@ -379,9 +379,6 @@ TEST_CASE("test generateMoves() kiwipete position move count", "[move_generator]
   Position pos(kp_position);
 
   MoveVec moves = move_gen.generateMoves(pos);
-  for (const auto& move : moves) {
-    move.print(pos);
-  }
   REQUIRE(moves.size() == 48);
 }
 
