@@ -330,7 +330,7 @@ TEST_CASE("test pinned + check isLegal()", "[move_generator]") {
   Move check_move(king_index, rankFileToIndex(3, 2), MoveType::Quiet);
   REQUIRE_FALSE(move_gen.isLegal(check_move, pos, persp, king_index, checkers, pinned_pieces));
 
-  Move pawn_move(rankFileToIndex(3, 3), rankFileToIndex(4, 3), MoveType::Quiet);
+  Move pawn_move(rankFileToIndex(3, 3), rankFileToIndex(2, 3), MoveType::Quiet);
   REQUIRE_FALSE(move_gen.isLegal(pawn_move, pos, persp, king_index, checkers, pinned_pieces));
 
   Move legal_move(king_index, rankFileToIndex(4, 4), MoveType::Quiet);
@@ -380,5 +380,46 @@ TEST_CASE("test generateMoves() kiwipete position move count", "[move_generator]
 
   MoveVec moves = move_gen.generateMoves(pos);
   REQUIRE(moves.size() == 48);
+
+  int capture_cnt = 0;
+  int castle_cnt = 0;
+  for (const auto& move : moves) {
+    if (move.move_type == MoveType::Capture || move.move_type == MoveType::EnPassantCapture) {
+      capture_cnt++;
+    } else if (move.move_type == MoveType::KingsideCastle || move.move_type == MoveType::QueensideCastle) {
+      castle_cnt++;
+    }
+  }
+  REQUIRE(capture_cnt == 8);
+  REQUIRE(castle_cnt == 2);
 }
 
+TEST_CASE("test generateMoves() check position move count", "[move_generator]") {
+  MoveGenerator move_gen;
+  std::string check_position = "r3k2r/Pppp1ppp/1b3nbN/nP6/BBP1P3/q4N2/Pp1P2PP/R2Q1RK1 w kq - 0 1";
+  Position pos(check_position);
+
+  MoveVec moves = move_gen.generateMoves(pos);
+  REQUIRE(moves.size() == 6);
+
+  int capture_cnt = 0;
+  int castle_cnt = 0;
+  for (const auto& move : moves) {
+    if (move.move_type == MoveType::Capture || move.move_type == MoveType::EnPassantCapture) {
+      capture_cnt++;
+    } else if (move.move_type == MoveType::KingsideCastle || move.move_type == MoveType::QueensideCastle) {
+      castle_cnt++;
+    }
+  }
+  REQUIRE(capture_cnt == 0);
+  REQUIRE(castle_cnt == 0);
+}
+
+TEST_CASE("test generateMoves() position 6 move count", "[move_generator]") {
+  MoveGenerator move_gen;
+  std::string position_6 = "r4rk1/1pp1qppp/p1np1n2/2b1p1B1/2B1P1b1/P1NP1N2/1PP1QPPP/R4RK1 w - - 0 10";
+  Position pos(position_6);
+
+  MoveVec moves = move_gen.generateMoves(pos);
+  REQUIRE(moves.size() == 46);
+}

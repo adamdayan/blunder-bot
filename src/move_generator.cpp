@@ -134,6 +134,30 @@ BitBoard precomputeKingMoves(int rank, int file) {
   return bb;
 }
 
+// TODO: test this
+// returns a bitboard of the ray between square 1 and square 2 inclusive. if
+// there is no such ray then returns an empty bitboard
+BitBoard precomputeRaysBetween(int s1_index, int s2_index, const BoardMatrix<std::array<BitBoard, 8>>& rays) {
+  int s1_rank = indexToRank(s1_index);
+  int s1_file = indexToFile(s1_index);
+
+  for (const auto& ray : rays[s1_rank][s1_file]) {
+    if (ray.getBit(s2_index)) {
+      BitBoard rel_ray = ray;
+      rel_ray.setBit(s1_index);
+      if (s1_index < s2_index) {
+        rel_ray.clearBitsAbove(s2_index + 1);
+        rel_ray.clearBitsBelow(s1_index - 1);
+      } else {
+        rel_ray.clearBitsAbove(s1_index + 1);
+        rel_ray.clearBitsBelow(s2_index - 1);
+      }
+      return rel_ray;
+    }
+  }
+  return BitBoard();
+}
+
 void Move::print(const Position& pos) const {
   std::pair<Colour, PieceType> colour_piece = pos.getColourPieceType(source);
   std::string piece_name = piece_to_string[colour_piece.first][colour_piece.second].c_str();
@@ -156,6 +180,10 @@ void MoveGenerator::extractPieceMoves(BitBoard bb, int source, MoveType type, Mo
     int dest = bb.popHighestSetBit();
     moves.emplace_back(source, dest, type);
   }
+}
+
+BitBoard MoveGenerator::getRayBetween(int s1_index, int s2_index) {
+  return rays_between[indexToRank(s1_index)][indexToFile(s1_index)][indexToRank(s2_index)][indexToFile(s2_index)];
 }
 
 void MoveGenerator::generatePawnMoves(const Position& pos, const BoardPerspective& persp, MoveVec& moves) {
@@ -512,13 +540,13 @@ void MoveGenerator::generateCastles(const Position& pos, const BoardPerspective&
 }
 
 // TODO: test the absolute hell out of this
-bool MoveGenerator::isLegal(const Move& move, const Position& pos, BoardPerspective& persp, int king_index, BitBoard checkers, BitBoard pinned_pieces) {
+bool MoveGenerator::isLegal(const Move& move, const Position& pos, BoardPerspective& persp, int king_index, const BitBoard& checkers, const BitBoard& pinned_pieces) {
   if (move.source == king_index) {
     return isLegalKingMove(move, pos, persp, checkers);
   } else if (move.move_type == MoveType::EnPassantCapture) {
-    return isLegalEnpassant(move, pos, persp, checkers, pinned_pieces);
+    return isLegalEnpassant(move, pos, persp, king_index, checkers, pinned_pieces);
   }
-  return isLegalNonKingMove(move, pos, persp, checkers, pinned_pieces);
+  return isLegalNonKingMove(move, pos, persp, king_index, checkers, pinned_pieces);
 }
 
 bool MoveGenerator::isLegalKingMove(const Move& move, const Position& pos, const BoardPerspective& persp, const BitBoard& checkers) {
@@ -528,21 +556,25 @@ bool MoveGenerator::isLegalKingMove(const Move& move, const Position& pos, const
   return getAttackers(pos, persp, move.dest).isEmpty();
 }
 
-bool MoveGenerator::isLegalNonKingMove(const Move& move, const Position& pos, const BoardPerspective&, const BitBoard& checkers, const BitBoard& pinned_pieces) {
+bool MoveGenerator::isLegalNonKingMove(const Move& move, const Position& pos, const BoardPerspective& persp, int king_index, const BitBoard& checkers, const BitBoard& pinned_pieces) {
   int n_checkers = checkers.countSetBits();
   // if the king is in double check you must move the king
   if (n_checkers > 1) {
     return false;
   } else if (n_checkers == 1) {
-    // if there is one piece checking the king we must take that piece (as long
-    // as the piece we are using to capture is not itself pinned)
-    if (!checkers.getBit(move.dest) || pinned_pieces.getBit(move.source)) {
+    // if there is one piece checking the king we must take that piece or block
+    // it (as long as the piece we use to do so is not itself pinned)
+    int checker_index = checkers.getHighestSetBit();
+    BitBoard checking_ray = getRayBetween(checker_index, king_index);
+    if (!(checkers.getBit(move.dest) || checking_ray.getBit(move.dest)) ||
+        pinned_pieces.getBit(move.source)) {
       return false;
     }
   } else {
-    // if the king is not in check then we can make any move as long as the piece isn't pinned
+    // if the king is not in check then we can make any move as long as the
+    // piece isn't pinned in a different direction to the move
     if (pinned_pieces.getBit(move.source)) {
-      return false;
+      return isLegalPinnedMove(move, pos, persp, king_index);
     }
   }
 
@@ -572,7 +604,7 @@ bool MoveGenerator::isLegalCastles(const Move& move, const Position& pos, const 
 // en passant requires special handling because it's only move where capturing
 // piece does not end up on same square as captured piece. specifically,
 // horizontal pins would be missed with normal move checking
-bool MoveGenerator::isLegalEnpassant(const Move& move, const Position& pos, const BoardPerspective& persp, const BitBoard& checkers, const BitBoard& pinned_pieces) {
+bool MoveGenerator::isLegalEnpassant(const Move& move, const Position& pos, const BoardPerspective& persp, int king_index, const BitBoard& checkers, const BitBoard& pinned_pieces) {
   // NOTE: I am doing fewer checks than "purple-bot" here. he runs full non king
   // legal move checks on the altered pos - double check I am correct that only
   // concern is horizontal pin
@@ -582,7 +614,16 @@ bool MoveGenerator::isLegalEnpassant(const Move& move, const Position& pos, cons
   if (pinned_en_passant.getBit(move.source)) {
     return false;
   }
-  return isLegalNonKingMove(move, pos, persp, checkers, pinned_pieces);
+  return isLegalNonKingMove(move, pos, persp, king_index, checkers, pinned_pieces);
+}
+
+bool MoveGenerator::isLegalPinnedMove(const Move& move, const Position& pos, const BoardPerspective& persp, int king_index) {
+  // moving an absolutely pinned piece is only allowed if it's moving on the pinning ray
+  BitBoard move_ray = getRayBetween(move.source, move.dest);
+  BitBoard king_source_ray = getRayBetween(king_index, move.source);
+  BitBoard king_dest_ray = getRayBetween(king_index, move.dest);
+  // if there are 2 or more common bits between the above rays then we're moving on the pinning ray
+  return (move_ray & king_source_ray & king_dest_ray).countSetBits() >= 2;
 }
 
 BitBoard MoveGenerator::getPinnedPieces(const Position& pos, const BoardPerspective& persp) {
@@ -702,6 +743,16 @@ MoveGenerator::MoveGenerator() {
       }
       knight_moves[rank][file] = precomputeKnightMoves(rank, file);
       king_moves[rank][file] = precomputeKingMoves(rank, file);
+    }
+  }
+
+  for (int rank = 0; rank < 8; rank++) {
+    for (int file = 0; file < 8; file++) {
+      for (int dest_rank = 0; dest_rank < 8; dest_rank++) {
+        for (int dest_file = 0; dest_file < 8; dest_file++) {
+          rays_between[rank][file][dest_rank][dest_file] = precomputeRaysBetween(rankFileToIndex(rank, file), rankFileToIndex(dest_rank, dest_file), rays);
+        }
+      }
     }
   }
 }

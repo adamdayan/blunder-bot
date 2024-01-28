@@ -94,11 +94,12 @@ class MoveGenerator {
     void generateCastles(const Position& pos, const BoardPerspective& persp, MoveVec& moves);
 
     // returns true if the given move is legal. used to prune pseudo-legal moves
-    bool isLegal(const Move& move, const Position& pos, BoardPerspective& persp, int king_index, BitBoard checkers, BitBoard pinned_pieces);
+    bool isLegal(const Move& move, const Position& pos, BoardPerspective& persp, int king_index, const BitBoard& checkers, const BitBoard& pinned_pieces);
     bool isLegalKingMove(const Move& move, const Position& pos, const BoardPerspective& persp, const BitBoard& checkers);
-    bool isLegalNonKingMove(const Move& move, const Position& pos, const BoardPerspective& persp, const BitBoard& checkers, const BitBoard& pinned_pieces);
+    bool isLegalNonKingMove(const Move& move, const Position& pos, const BoardPerspective& persp, int king_index, const BitBoard& checkers, const BitBoard& pinned_pieces);
     bool isLegalCastles(const Move& move, const Position& pos, const BoardPerspective& persp, const BitBoard& checkers);
-    bool isLegalEnpassant(const Move& move, const Position& pos, const BoardPerspective& persp, const BitBoard& checkers, const BitBoard& pinned_pieces);
+    bool isLegalEnpassant(const Move& move, const Position& pos, const BoardPerspective& persp, int king_index, const BitBoard& checkers, const BitBoard& pinned_pieces);
+    bool isLegalPinnedMove(const Move& move, const Position&  pos, const BoardPerspective& persp, int king_index);
 
     BitBoard computeSinglePawnPushes(const Position& pos, const BoardPerspective& persp);
     BitBoard computeDoublePawnPushes(const Position& pos, const BoardPerspective& persp, BitBoard single_pushes);
@@ -127,9 +128,11 @@ class MoveGenerator {
   private:
     void extractPawnMoves(BitBoard bb, int offset, MoveType type, MoveVec& moves, PieceType promotion = PieceType::All);
     void extractPieceMoves(BitBoard bb, int source, MoveType type, MoveVec& moves);
+    BitBoard getRayBetween(int s1_index, int s2_index);
     BoardMatrix<std::array<BitBoard, 8>> rays;
     BoardMatrix<BitBoard> knight_moves;
     BoardMatrix<BitBoard> king_moves;
+    BoardMatrix<BoardMatrix<BitBoard>> rays_between;
 };
 
 #endif // MOVE_GENERATOR_H
