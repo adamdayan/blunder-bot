@@ -8,21 +8,6 @@
 #include "utils.h"
 #include "constants.h"
 
-
-// TODO: decide what on earth this class will look like
-class Move {
-  public:
-    // promotion=PieceType::All means no promotion
-    Move(int source, int dest, MoveType move_type, PieceType promotion = PieceType::All) : source(source), dest(dest), move_type(move_type), promotion(promotion) {};
-    // prints a more human readable move description
-    void print(const Position& pos) const;
-
-    int source;
-    int dest;
-    MoveType move_type;
-    PieceType promotion;
-};
-
 class BoardPerspective {
   public:
     BoardPerspective(Colour side_to_move) : side_to_move(side_to_move) {
@@ -124,6 +109,8 @@ class MoveGenerator {
 
     // returns a bitboard of all absolutely pinned pieces
     BitBoard getPinnedPieces(const Position& pos, const BoardPerspective& persp);
+
+    int computePerft(int depth);
 
   private:
     void extractPawnMoves(BitBoard bb, int offset, MoveType type, MoveVec& moves, PieceType promotion = PieceType::All);

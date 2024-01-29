@@ -1,176 +1,8 @@
-#include <bit>
-
 #include "position.h"
 #include "constants.h"
 #include "utils.h"
+#include <cstdio>
 
-void BitBoard::setBoard(BoardBits val) {
-  board = val;
-}
-
-void BitBoard::setBit(int bit_index) {
-  board |= (static_cast<BoardBits>(1) << bit_index);
-}
-
-void BitBoard::setBit(int rank, int file) {
-  int bit_index = rankFileToIndex(rank, file);
-  setBit(bit_index);
-}
-
-bool BitBoard::getBit(int bit_index) const {
-  return static_cast<BoardBits>(1) & (board >> bit_index);
-}
-
-bool BitBoard::getBit(int rank, int file) const {
-  int bit_index = rankFileToIndex(rank, file);
-  return getBit(bit_index);
-}
-
-bool BitBoard::isEmpty() const {
-  return countSetBits() == 0;
-}
-
-BitBoard BitBoard::shift(Direction dir) const {
-  // TODO: write tests for this
-  if (dir == Direction::North) {
-    return BitBoard(board << 8);
-  } else if (dir == Direction::NorthEast) {
-    // NOTE: will this work?
-    return shift(Direction::North).shift(Direction::East);
-  } else if (dir == Direction::East) {
-    // we don't want to shift pieces on the H-file east because they will wrap
-    // around
-    return BitBoard((board & ~FILEH)<< 1);
-  } else if (dir == Direction::SouthEast) {
-    return shift(Direction::South).shift(Direction::East);
-  } else if (dir == Direction::South) {
-    return BitBoard(board >> 8);
-  } else if (dir == Direction::SouthWest) {
-    return shift(Direction::South).shift(Direction::West);
-  } else if (dir == Direction::West) {
-    return BitBoard((board & ~FILEA) >> 1);
-  } else if (dir == Direction::NorthWest) {
-    return shift(Direction::North).shift(Direction::West);
-  }
-  // TODO: decide how to handle bad input
-  return BitBoard();
-}
-
-int BitBoard::getLowestSetBit() const {
-  int bit_index = std::countr_zero(board);
-  // NOTE: decide if this is the correct way to handle there being 0 set bits
-  if (bit_index == 64) return -1;
-  return bit_index;
-}
-
-int BitBoard::getHighestSetBit() const {
-  return 63 - std::countl_zero(board);
-}
-
-int BitBoard::popLowestSetBit() {
-  int bit_index = getLowestSetBit();
-  if (bit_index >= 0) {
-    clearBit(bit_index);
-  }
-  return bit_index;
-}
-
-int BitBoard::popHighestSetBit() {
-  int bit_index = getHighestSetBit();
-  if (bit_index >= 0) {
-    clearBit(bit_index);
-  }
-  return bit_index;
-}
-
-int BitBoard::countSetBits() const {
-  return std::popcount(board);
-}
-
-void BitBoard::clearBit(int bit_index) {
-  board = board ^ (static_cast<BoardBits>(1) << (bit_index));
-}
-
-void BitBoard::clearBitsAbove(int bit_index) {
-  BoardBits mask;
-  if (bit_index == 64) {
-    // required because (1 << 64) wraps around to 1 not 0
-    mask = BoardBits(0) - 1;
-  } else {
-    mask = (BoardBits(1) << bit_index) - 1;
-  }
-  board = board & mask;
-}
-
-void BitBoard::clearBitsBelow(int bit_index) {
-  BoardBits mask = ~((BoardBits(1) << (bit_index + 1)) - 1);
-  board = board & mask;
-}
-
-void BitBoard::clear() {
-  setBoard(0);
-}
-
-BitBoard BitBoard::operator&(const BitBoard& bb) const {
-  return BitBoard(board & bb.board);
-}
-
-BitBoard BitBoard::operator|(const BitBoard& bb) const {
-  return BitBoard(board | bb.board);
-}
-
-BitBoard BitBoard::operator^(const BitBoard& bb) const {
-  return BitBoard(board ^ bb.board);
-}
-
-BitBoard BitBoard::operator~() const {
-  return BitBoard(~board);
-}
-
-BitBoard BitBoard::operator<<(int n) const {
-  return BitBoard(board << n);
-}
-
-BitBoard BitBoard::operator>>(int n) const {
-  return BitBoard(board >> n);
-}
-
-void BitBoard::operator&=(const BitBoard& bb) {
-  board &= bb.board;
-}
-
-void BitBoard::operator|=(const BitBoard& bb) {
-  board |= bb.board;
-}
-
-void BitBoard::operator^=(const BitBoard& bb) {
-  board ^= bb.board;
-}
-
-
-void BitBoard::print() const {
-  // iterate through each rank, if there's a piece on a file then print it
-  // otherwise print blank
-  for (int rank = 7; rank >= 0; rank--) {
-    std::string rank_str = std::to_string(rank + 1) + " ";
-    for (int file = 0; file < 8; file++) {
-      if (getBit(rank, file)) {
-        // const maps don't allow use of [] so must use find instead
-        rank_str += std::to_string(1);
-      } else {
-        rank_str += std::to_string(0);
-      }
-      rank_str += " ";
-    }
-    printf("%s\n", rank_str.c_str());
-  }
-  std::string file_name_str = "  ";
-  for (const std::string& file : file_names) {
-    file_name_str += file + " ";
-  }
-  printf("%s \n", file_name_str.c_str());
-  printf("\n");
-}
 
 void Position::clear() {
   for (int colour = Colour::White; colour <= Colour::Black; colour++) {
@@ -378,6 +210,15 @@ std::pair<Colour, PieceType> Position::getColourPieceType(int square_bit_index) 
   }
 }
 
+PieceType Position::getPieceType(Colour colour, int square_bit_index) const {
+  for (int piece = PieceType::Pawn; piece < PieceType::All; piece++) {
+    if (bit_boards[colour][piece].getBit(square_bit_index)) {
+      return static_cast<PieceType>(piece);
+    }
+  }
+  return PieceType::None;
+}
+
 bool Position::isDrawBy50Moves() const {
   return halfmove_clock >= MAX_HALFMOVE_CNT;
 }
@@ -434,4 +275,127 @@ bool Position::isDrawByInsufficientMaterial() const {
   } 
 
   return false;
+}
+
+// TODO: test this!
+void Position::makeMove(const Move& move) {
+  PieceType piece_type = getPieceType(side_to_move, move.source);
+  // if the king moves we lose castling rights
+  if (piece_type == PieceType::King) {
+    castling_rights[side_to_move] = {false, false};
+  }
+  // if castle moves from init position we lose castling rights on that side
+  if (piece_type == PieceType::Rook) {
+    prepareRookMove(move);
+  }
+  
+  if (piece_type == PieceType::Pawn) {
+    int source_rank = indexToRank(move.source);
+    int dest_rank = indexToRank(move.dest);
+    // if a double pawn push enpassant is possible
+    if (abs(source_rank - dest_rank) == 2) {
+      prepareDoublePawnPush(move);
+    } else {
+      enpassant.clear();
+    }
+  } else {
+    enpassant.clear();
+  }
+
+
+  if (move.move_type ==  MoveType::Quiet && move.promotion == PieceType::All) {
+    removePiece(side_to_move, piece_type, move.source);
+    addPiece(side_to_move, piece_type, move.dest);
+  } else if (move.move_type == MoveType::Capture && move.promotion == PieceType::All) {
+    makeCapture(move);
+    removePiece(side_to_move, piece_type, move.source);
+    addPiece(side_to_move, piece_type, move.dest);
+  } else if (move.move_type == MoveType::EnPassantCapture) {
+    int enpassant_offset = (side_to_move == Colour::White) ? -8: 8;  
+    removePiece(invertColour(side_to_move), PieceType::Pawn, move.dest + enpassant_offset);
+    removePiece(side_to_move, piece_type, move.source);
+    addPiece(side_to_move, piece_type, move.dest);
+  } else if (move.move_type == MoveType::Quiet && move.promotion != PieceType::All) {
+    removePiece(side_to_move, piece_type, move.source);
+    addPiece(side_to_move, move.promotion, move.dest);
+  } else if (move.move_type == MoveType::Capture && move.promotion != PieceType::All) {
+    makeCapture(move);
+    removePiece(side_to_move, piece_type, move.source);
+    addPiece(side_to_move, move.promotion, move.dest);
+  } else if (move.move_type == MoveType::KingsideCastle || move.move_type == MoveType::QueensideCastle) {
+    makeCastle(move);
+  }
+}
+
+void Position::makeCapture(const Move& move) {
+  PieceType enemy_piece_type = getPieceType(invertColour(side_to_move), move.dest); 
+  // capturing a rook can remove castling rights
+  if (enemy_piece_type == PieceType::Rook) {
+    if (side_to_move == Colour::White) {
+      if (move.dest == BLACK_KINGSIDE_ROOK_INIT_INDEX) {
+        castling_rights[Colour::Black][CastlingType::Kingside] = false;
+      } else if (move.dest == BLACK_QUEENSIDE_ROOK_INIT_INDEX) {
+        castling_rights[Colour::Black][CastlingType::Queenside] = false;
+      }
+    } else {
+      if (move.dest == WHITE_KINGSIDE_ROOK_INIT_INDEX) {
+        castling_rights[Colour::White][CastlingType::Kingside] = false;
+      } else if (move.dest == WHITE_QUEENSIDE_ROOK_INIT_INDEX) {
+        castling_rights[Colour::White][CastlingType::Queenside] = false;
+      }
+    }
+  }
+  removePiece(invertColour(side_to_move), enemy_piece_type, move.dest);
+}
+
+void Position::makeCastle(const Move& move) {
+  if (side_to_move == Colour::White) {
+    if (move.move_type == MoveType::KingsideCastle) {
+      removePiece(side_to_move, PieceType::Rook, WHITE_KINGSIDE_ROOK_INIT_INDEX);
+      removePiece(side_to_move, PieceType::King, 4);
+      addPiece(side_to_move, PieceType::Rook, 5);
+      addPiece(side_to_move, PieceType::King, 6);
+    } else if (move.move_type == MoveType::QueensideCastle) {
+      removePiece(side_to_move, PieceType::Rook, WHITE_QUEENSIDE_ROOK_INIT_INDEX);
+      removePiece(side_to_move, PieceType::King, 4);
+      addPiece(side_to_move, PieceType::Rook, 3);
+      addPiece(side_to_move, PieceType::King, 2);
+    }
+  } else {
+    if (move.move_type == MoveType::KingsideCastle) {
+      removePiece(side_to_move, PieceType::Rook, BLACK_KINGSIDE_ROOK_INIT_INDEX);
+      removePiece(side_to_move, PieceType::King, 60);
+      addPiece(side_to_move, PieceType::Rook, 61);
+      addPiece(side_to_move, PieceType::King, 62);
+    } else if (move.move_type == MoveType::QueensideCastle) {
+      removePiece(side_to_move, PieceType::Rook, BLACK_QUEENSIDE_ROOK_INIT_INDEX);
+      removePiece(side_to_move, PieceType::King, 60);
+      addPiece(side_to_move, PieceType::Rook, 59);
+      addPiece(side_to_move, PieceType::King, 58);
+    }
+  }
+}
+
+void Position::prepareDoublePawnPush(const Move& move) {
+  if (side_to_move == Colour::White) {
+    enpassant.setBit(move.dest - 8);
+  } else {
+    enpassant.setBit(move.dest + 8);
+  }
+}
+
+void Position::prepareRookMove(const Move& move) {
+  if (side_to_move == Colour::White) {
+    if (move.source == WHITE_KINGSIDE_ROOK_INIT_INDEX) {
+      castling_rights[side_to_move][CastlingType::Kingside] = false;
+    } else if (move.source == WHITE_QUEENSIDE_ROOK_INIT_INDEX) {
+      castling_rights[side_to_move][CastlingType::Queenside] = false;
+    }
+  } else {
+    if (move.source == BLACK_KINGSIDE_ROOK_INIT_INDEX) {
+      castling_rights[side_to_move][CastlingType::Kingside] = false;
+    } else if (move.source == BLACK_QUEENSIDE_ROOK_INIT_INDEX) {
+      castling_rights[side_to_move][CastlingType::Queenside] = false;
+    }
+  }
 }

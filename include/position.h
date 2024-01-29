@@ -3,75 +3,26 @@
 
 #include <array>
 
+#include "bitboard.h"
 #include "constants.h"
 #include "useful_fens.h"
 
-// holds an aspect of positional board state in a 64-bit uint
-class BitBoard {
+
+
+class Position;
+
+// TODO: decide what on earth this class will look like
+class Move {
   public:
-    BitBoard() {};
-    BitBoard(BoardBits val) : board(val) {};
+    // promotion=PieceType::All means no promotion
+    Move(int source, int dest, MoveType move_type, PieceType promotion = PieceType::All) : source(source), dest(dest), move_type(move_type), promotion(promotion) {};
+    // prints a more human readable move description
+    void print(const Position& pos) const;
 
-    // sets BoardBits value
-    void setBoard(BoardBits val);
-
-    // sets bit specified by index
-    void setBit(int bit_index);
-    // sets bit specified by rank and file;
-    void setBit(int rank, int file);
-
-    // gets bit specificied by index
-    bool getBit(int bit_index) const;
-    // gets bits specified by rank and file
-    bool getBit(int rank, int file) const;
-
-    // returns true if no bits sets
-    bool isEmpty() const;
-
-    // returns a new bitboard shifted in the specified direction
-    BitBoard shift(Direction dir) const;
-
-    // returns lowest set bit index on the bitboard which corresponds to squares closer to a1
-    // returns. returns -1 if no set bits 
-    int getLowestSetBit() const;
-    // returns highest set bit index on the bitboard which corresponds to squares closer to h8. 
-    // returns -1 if no bits set
-    int getHighestSetBit() const;
-    // returns index of and clears lowest set bit
-    int popLowestSetBit();
-    // returns index of and clears highest set bit
-    int popHighestSetBit();
-
-    // counts set bits
-    int countSetBits() const;
-
-    // clears bit
-    void clearBit(int bit_index);
-    // clears all bits higher at bit_index or higher
-    void clearBitsAbove(int bit_index);
-    // clear all bits at bit index or lower
-    void clearBitsBelow(int bit_index);
-    // sets bitboard to 0
-    void clear();
-
-    // overload bitwise operators to operate on underlying BoardBits 
-    BitBoard operator&(const BitBoard& bb) const;
-    BitBoard operator|(const BitBoard& bb) const;
-    BitBoard operator~() const;
-    BitBoard operator^(const BitBoard& bb) const;
-
-    void operator&=(const BitBoard& bb);
-    void operator|=(const BitBoard& bb);
-    void operator^=(const BitBoard& bb);
-
-    BitBoard operator<<(int n) const;
-    BitBoard operator>>(int n) const;
-
-    // prints out the bitboard, optionally takes piece type otherwise defaults
-    // to "*"
-    void print() const;
-
-    BoardBits board = 0;
+    int source;
+    int dest;
+    MoveType move_type;
+    PieceType promotion;
 };
 
 class Position {
@@ -102,18 +53,30 @@ class Position {
     void removePiece(Colour colour, PieceType piece_type, int square_bit_index);
     // returns piece colour and type on given square
     std::pair<Colour, PieceType> getColourPieceType(int square_bit_index) const;
+    PieceType getPieceType(Colour colour, int square_bit_index) const;
 
     // methods needed for detecting draws
     bool isDrawBy50Moves() const;
+    bool isDrawByInsufficientMaterial() const;
     // TODO: complete
     bool isDrawByRepetition() const;
-    bool isDrawByInsufficientMaterial() const;
+
+    Position applyMove(const Move& move);
+    void makeMove(const Move& move);
 
   private:
+    void prepareDoublePawnPush(const Move& move);
+    void prepareRookMove(const Move& move);
+    void makeCapture(const Move& move);
+    void makeRookCapture(const Move& move);
+    void makeCastle(const Move& move);
+
     // NOTE: is this double array + member more horrible than 1 enum with all
     // options?
     std::array<std::array<BitBoard, 7>, 2> bit_boards; 
     BitBoard all_pieces;
+    // bitboard of squares that taking pawns would move to if en-passanting i.e
+    // the single pawn push square
     BitBoard enpassant;
     Colour side_to_move;
     std::array<std::array<bool, 2>, 2> castling_rights;

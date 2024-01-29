@@ -44,3 +44,11 @@ bool isWhiteSquare(int index) {
   int file = indexToFile(index);
   return isWhiteSquare(rank, file);
 }
+
+Colour invertColour(Colour colour) {
+  if (colour == Colour::White) {
+    return Colour::Black;
+  } else {
+    return Colour::White;
+  }
+}

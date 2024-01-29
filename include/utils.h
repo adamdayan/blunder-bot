@@ -23,6 +23,8 @@ bool isWhiteSquare(int rank, int file);
 
 bool isWhiteSquare(int index);
 
+Colour invertColour(Colour colour);
+
 
 
 # endif // UTILS_H

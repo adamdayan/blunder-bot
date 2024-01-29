@@ -16,6 +16,8 @@ enum PieceType {
   Queen,
   King,
   All,
+  // TODO: switch to using this in no Promotion case
+  None,
 };
 
 enum Colour {
@@ -67,6 +69,11 @@ constexpr BoardBits FILEE = FILEA << 4;
 constexpr BoardBits FILEF = FILEA << 5;
 constexpr BoardBits FILEG = FILEA << 6;
 constexpr BoardBits FILEH = FILEA << 7;
+
+constexpr int WHITE_KINGSIDE_ROOK_INIT_INDEX = 7;
+constexpr int WHITE_QUEENSIDE_ROOK_INIT_INDEX = 0;
+constexpr int BLACK_KINGSIDE_ROOK_INIT_INDEX = 56;
+constexpr int BLACK_QUEENSIDE_ROOK_INIT_INDEX = 63;
 
 const std::array<std::string, 8> file_to_name = {"A", "B", "C", "D", "E", "F", "G", "H"};
 
