@@ -277,7 +277,6 @@ bool Position::isDrawByInsufficientMaterial() const {
   return false;
 }
 
-// TODO: test this!
 void Position::makeMove(const Move& move) {
   PieceType piece_type = getPieceType(side_to_move, move.source);
   // if the king moves we lose castling rights

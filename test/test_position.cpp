@@ -91,5 +91,30 @@ TEST_CASE("test enpassant makeMove()", "[position]") {
   REQUIRE_FALSE(pos.getAllPiecesBitBoard().getBit(rankFileToIndex(3, 5)));
 }
 
+TEST_CASE("test quiet promotion makeMove()", "[position]") {
+  std::string quiet_promotion_position =  "8/7P/8/8/8/8/8/8 w - - 0 1";
+  Position pos(quiet_promotion_position);
+  Move prom_move = Move(rankFileToIndex(6, 7), rankFileToIndex(7, 7), MoveType::Quiet, PieceType::Rook);
+  pos.makeMove(prom_move);
+
+  REQUIRE(pos.getPieceType(Colour::White, rankFileToIndex(7, 7)) == PieceType::Rook);
+  REQUIRE(pos.getPieceType(Colour::White, rankFileToIndex(6, 7)) == PieceType::None);
+  REQUIRE(pos.getPieceBitBoard(Colour::White, PieceType::Pawn).isEmpty());
+}
+
+TEST_CASE("test capture promotion makeMove()", "[position]") {
+  std::string cap_promotion_position =  "6q1/7P/8/8/8/8/8/8 w - - 0 1";
+  Position pos(cap_promotion_position);
+  Move prom_move = Move(rankFileToIndex(6, 7), rankFileToIndex(7, 6), MoveType::Capture, PieceType::Rook);
+  pos.makeMove(prom_move);
+
+  REQUIRE(pos.getPieceType(Colour::White, rankFileToIndex(7, 6)) == PieceType::Rook);
+  REQUIRE(pos.getPieceType(Colour::White, rankFileToIndex(6, 7)) == PieceType::None);
+  REQUIRE(pos.getPieceType(Colour::Black, rankFileToIndex(7, 6)) == PieceType::None);
+  REQUIRE(pos.getPieceBitBoard(Colour::White, PieceType::Pawn).isEmpty());
+  REQUIRE(pos.getPieceBitBoard(Colour::Black, PieceType::Queen).isEmpty());
+}
+
+
 
 // TODO: add more Position tests
