@@ -110,7 +110,8 @@ class MoveGenerator {
     // returns a bitboard of all absolutely pinned pieces
     BitBoard getPinnedPieces(const Position& pos, const BoardPerspective& persp);
 
-    int computePerft(int depth);
+    int computePerft(const Position& pos, int depth);
+    void dividePerft(const Position& pos, int depth);
 
   private:
     void extractPawnMoves(BitBoard bb, int offset, MoveType type, MoveVec& moves, PieceType promotion = PieceType::All);

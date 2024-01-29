@@ -2,6 +2,7 @@
 #define POSITION_H 
 
 #include <array>
+#include <ostream>
 
 #include "bitboard.h"
 #include "constants.h"
@@ -18,6 +19,7 @@ class Move {
     Move(int source, int dest, MoveType move_type, PieceType promotion = PieceType::All) : source(source), dest(dest), move_type(move_type), promotion(promotion) {};
     // prints a more human readable move description
     void print(const Position& pos) const;
+    std::string to_string(const Position& pos) const;
 
     int source;
     int dest;
@@ -61,8 +63,10 @@ class Position {
     // TODO: complete
     bool isDrawByRepetition() const;
 
-    Position applyMove(const Move& move);
+    // makes the given move in place
     void makeMove(const Move& move);
+    // returns a new position with the given move made
+    Position applyMove(const Move& move) const;
 
   private:
     void prepareDoublePawnPush(const Move& move);

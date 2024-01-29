@@ -158,15 +158,6 @@ BitBoard precomputeRaysBetween(int s1_index, int s2_index, const BoardMatrix<std
   return BitBoard();
 }
 
-void Move::print(const Position& pos) const {
-  std::pair<Colour, PieceType> colour_piece = pos.getColourPieceType(source);
-  std::string piece_name = piece_to_string[colour_piece.first][colour_piece.second].c_str();
-  std::string source_name = indexToName(source);
-  std::string dest_name = indexToName(dest);
-  std::string type_name = moveTypeToName(move_type);
-  printf("%s %s %s %s\n", piece_name.c_str(), source_name.c_str(), dest_name.c_str(), type_name.c_str());
-}
-
 void MoveGenerator::extractPawnMoves(BitBoard bb, int offset, MoveType type, MoveVec& moves, PieceType promotion) {
   while (!bb.isEmpty()) {
     int dest = bb.popHighestSetBit();
@@ -274,7 +265,6 @@ void MoveGenerator::generatePromotions(const Position& pos, const BoardPerspecti
   BitBoard east_cap = pawns.shift(persp.up_east);
   east_cap &= takeable_pieces;
   
-
   // get single pushes resulting in promotion
   BitBoard single_push = pawns.shift(persp.up);
   // check there are no blocking piece
@@ -732,6 +722,40 @@ MoveVec MoveGenerator::generateMoves(const Position& pos) {
 
   // NOTE: do I really want to be returning this potentially large vector by value?
   return moves;
+}
+
+int MoveGenerator::computePerft(const Position& pos, int depth) {
+  MoveVec moves = generateMoves(pos);
+  if (depth == 1) {
+    return moves.size();
+  }
+  int sum = 0;
+  int move_total;
+  for (const Move& move : moves) {
+    Position resultant_pos = pos.applyMove(move);
+    // sum += computePerft(resultant_pos, depth - 1);
+    move_total = computePerft(resultant_pos, depth - 1);
+    sum += move_total;
+  }
+  return sum;
+}
+
+void MoveGenerator::dividePerft(const Position& pos, int depth) {
+  MoveVec moves = generateMoves(pos);
+  if (depth == 1) {
+    for (const Move& move : moves) {
+      move.print(pos);
+    }
+  }
+  int sum = 0;
+  int move_total = 0;
+  for (const Move& move : moves) {
+    Position resultant_pos = pos.applyMove(move);
+    move_total = computePerft(resultant_pos, depth - 1);
+    sum += move_total;
+    printf("%s : %d\n", move.to_string(pos).c_str(), move_total);
+  }
+  printf("total: %d\n", sum);
 }
 
 MoveGenerator::MoveGenerator() {

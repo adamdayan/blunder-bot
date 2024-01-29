@@ -373,6 +373,22 @@ TEST_CASE("test generateMoves() initial position move count", "[move_generator]"
   REQUIRE(moves.size() == 20);
 }
 
+TEST_CASE("test perft(3) initial position", "[move_generator]") {
+  MoveGenerator move_gen;
+  std::string init_position = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+  Position pos(init_position);
+  int move_count = move_gen.computePerft(pos, 3);
+  REQUIRE(move_count == 8902);
+}
+
+TEST_CASE("test perft(4) initial position", "[move_generator]") {
+  MoveGenerator move_gen;
+  std::string init_position = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+  Position pos(init_position);
+  int move_count = move_gen.computePerft(pos, 4);
+  REQUIRE(move_count == 197281);
+}
+
 TEST_CASE("test generateMoves() kiwipete position move count", "[move_generator]") {
   MoveGenerator move_gen;
   std::string kp_position = "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq -";

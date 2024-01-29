@@ -3,6 +3,17 @@
 #include "utils.h"
 #include <cstdio>
 
+void Move::print(const Position& pos) const {
+ printf("%s\n", to_string(pos).c_str());
+}
+
+std::string Move::to_string(const Position& pos) const {
+  std::pair<Colour, PieceType> colour_piece = pos.getColourPieceType(source);
+  std::string piece_name = piece_to_string[colour_piece.first][colour_piece.second].c_str();
+  std::string source_name = indexToName(source);
+  std::string dest_name = indexToName(dest);
+  return piece_name + " " + source_name + " " + dest_name;
+}
 
 void Position::clear() {
   for (int colour = Colour::White; colour <= Colour::Black; colour++) {
@@ -30,10 +41,7 @@ void Position::parseFEN(const std::string& fen) {
           string_to_piece.find(std::string(1, cur_char))->second;
       
       // set piece-specific and "All" bitboards
-      // NOTE: is it worth combining these 3 operations into a "placePiece" method?
-      bit_boards[piece_info.first][piece_info.second].setBit(rank, file);
-      bit_boards[piece_info.first][PieceType::All].setBit(rank, file);
-      all_pieces.setBit(rank, file);
+      addPiece(piece_info.first, piece_info.second, rankFileToIndex(rank, file));
       fen_idx++;
       file++;
       if (file > 7) {
@@ -277,6 +285,8 @@ bool Position::isDrawByInsufficientMaterial() const {
   return false;
 }
 
+
+
 void Position::makeMove(const Move& move) {
   PieceType piece_type = getPieceType(side_to_move, move.source);
   // if the king moves we lose castling rights
@@ -288,19 +298,17 @@ void Position::makeMove(const Move& move) {
     prepareRookMove(move);
   }
   
+  // clear last turn's enpassant board
+  // TODO: check this doesn't break any of makeMove()
+  enpassant.clear();
   if (piece_type == PieceType::Pawn) {
     int source_rank = indexToRank(move.source);
     int dest_rank = indexToRank(move.dest);
     // if a double pawn push enpassant is possible
     if (abs(source_rank - dest_rank) == 2) {
       prepareDoublePawnPush(move);
-    } else {
-      enpassant.clear();
     }
-  } else {
-    enpassant.clear();
   }
-
 
   if (move.move_type ==  MoveType::Quiet && move.promotion == PieceType::All) {
     removePiece(side_to_move, piece_type, move.source);
@@ -324,6 +332,19 @@ void Position::makeMove(const Move& move) {
   } else if (move.move_type == MoveType::KingsideCastle || move.move_type == MoveType::QueensideCastle) {
     makeCastle(move);
   }
+  side_to_move = invertColour(side_to_move);
+  // capturing or moving a pawn resets the halfmove clock
+  if (move.move_type == MoveType::Capture || move.move_type == MoveType::EnPassantCapture || piece_type == PieceType::Pawn) {
+    halfmove_clock = 0;
+  } else {
+    halfmove_clock++;
+  }
+}
+
+Position Position::applyMove(const Move& move) const {
+  Position new_pos(*this);
+  new_pos.makeMove(move);
+  return new_pos;
 }
 
 void Position::makeCapture(const Move& move) {
