@@ -14,7 +14,7 @@ int rankFileToIndex(int rank, int file) {
 }
 
 std::string indexToName(int index) {
-  return file_to_name[indexToFile(index)] + std::to_string(indexToRank(index) + 1);
+  return file_names[indexToFile(index)] + std::to_string(indexToRank(index) + 1);
 }
 
 std::string moveTypeToName(MoveType type) {

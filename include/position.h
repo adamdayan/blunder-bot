@@ -18,8 +18,8 @@ class Move {
     // promotion=PieceType::All means no promotion
     Move(int source, int dest, MoveType move_type, PieceType promotion = PieceType::All) : source(source), dest(dest), move_type(move_type), promotion(promotion) {};
     // prints a more human readable move description
-    void print(const Position& pos) const;
-    std::string to_string(const Position& pos) const;
+    void print(const Position& pos, const bool minimal=false) const;
+    std::string to_string(const Position& pos, const bool minimal) const;
 
     int source;
     int dest;

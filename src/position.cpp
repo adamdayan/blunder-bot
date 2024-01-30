@@ -3,15 +3,18 @@
 #include "utils.h"
 #include <cstdio>
 
-void Move::print(const Position& pos) const {
- printf("%s\n", to_string(pos).c_str());
+void Move::print(const Position& pos, bool minimal) const {
+ printf("%s\n", to_string(pos, minimal).c_str());
 }
 
-std::string Move::to_string(const Position& pos) const {
+std::string Move::to_string(const Position& pos, bool minimal) const {
   std::pair<Colour, PieceType> colour_piece = pos.getColourPieceType(source);
   std::string piece_name = piece_to_string[colour_piece.first][colour_piece.second].c_str();
   std::string source_name = indexToName(source);
   std::string dest_name = indexToName(dest);
+  if (minimal) {
+    return source_name + dest_name;
+  }
   return piece_name + " " + source_name + " " + dest_name;
 }
 

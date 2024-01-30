@@ -543,7 +543,14 @@ bool MoveGenerator::isLegalKingMove(const Move& move, const Position& pos, const
   if (move.move_type == MoveType::KingsideCastle || move.move_type == MoveType::QueensideCastle) {
     return isLegalCastles(move, pos, persp, checkers);
   }
-  return getAttackers(pos, persp, move.dest).isEmpty();
+
+  // we need to move the king before calling getAttackers() to make sure he
+  // isn't appearing to block an attack on the dest square
+  Position moved_king_pos(pos);
+  moved_king_pos.removePiece(persp.side_to_move, PieceType::King, move.source);
+  moved_king_pos.addPiece(persp.side_to_move, PieceType::King, move.dest);
+
+  return getAttackers(moved_king_pos, persp, move.dest).isEmpty();
 }
 
 bool MoveGenerator::isLegalNonKingMove(const Move& move, const Position& pos, const BoardPerspective& persp, int king_index, const BitBoard& checkers, const BitBoard& pinned_pieces) {
@@ -589,8 +596,6 @@ bool MoveGenerator::isLegalCastles(const Move& move, const Position& pos, const 
   return true;
 }
 
-
-
 // en passant requires special handling because it's only move where capturing
 // piece does not end up on same square as captured piece. specifically,
 // horizontal pins would be missed with normal move checking
@@ -599,7 +604,7 @@ bool MoveGenerator::isLegalEnpassant(const Move& move, const Position& pos, cons
   // legal move checks on the altered pos - double check I am correct that only
   // concern is horizontal pin
   Position pos_copy = pos;
-  pos_copy.removePiece(persp.opponent, PieceType::Pawn, move.dest);
+  pos_copy.removePiece(persp.opponent, PieceType::Pawn, move.dest + (persp.offset_sign * -8));
   BitBoard pinned_en_passant = getPinnedPieces(pos_copy, persp);
   if (pinned_en_passant.getBit(move.source)) {
     return false;
@@ -609,11 +614,11 @@ bool MoveGenerator::isLegalEnpassant(const Move& move, const Position& pos, cons
 
 bool MoveGenerator::isLegalPinnedMove(const Move& move, const Position& pos, const BoardPerspective& persp, int king_index) {
   // moving an absolutely pinned piece is only allowed if it's moving on the pinning ray
-  BitBoard move_ray = getRayBetween(move.source, move.dest);
   BitBoard king_source_ray = getRayBetween(king_index, move.source);
   BitBoard king_dest_ray = getRayBetween(king_index, move.dest);
-  // if there are 2 or more common bits between the above rays then we're moving on the pinning ray
-  return (move_ray & king_source_ray & king_dest_ray).countSetBits() >= 2;
+  // if piece is moving away from king then source must be on king -> dest ray,
+  // if piece is moving towards king then dest must be on king -> source ray
+  return (king_source_ray.getBit(move.dest) || king_dest_ray.getBit(move.source));
 }
 
 BitBoard MoveGenerator::getPinnedPieces(const Position& pos, const BoardPerspective& persp) {
@@ -634,7 +639,8 @@ BitBoard MoveGenerator::getPinnedPieces(const Position& pos, const BoardPerspect
   enemy_bishops |= pos.getPieceBitBoard(persp.opponent, PieceType::Queen);
   while (!enemy_bishops.isEmpty()) {
     int bishop_index = enemy_bishops.popHighestSetBit();
-    inward_bishop_moves |= computeBishopMoves(pos, opponent_persp, bishop_index);
+    // we're only interested in the bishop moves on the ray towards the king
+    inward_bishop_moves |= computeBishopMoves(pos, opponent_persp, bishop_index) & getRayBetween(bishop_index, king_index);
   }
   pinned_pieces |= outward_bishop_moves & inward_bishop_moves & our_pieces;
 
@@ -647,7 +653,8 @@ BitBoard MoveGenerator::getPinnedPieces(const Position& pos, const BoardPerspect
   enemy_rooks |= pos.getPieceBitBoard(persp.opponent, PieceType::Queen);
   while (!enemy_rooks.isEmpty()) {
     int rook_index = enemy_rooks.popHighestSetBit();
-    inward_rook_moves |= computeRookMoves(pos, opponent_persp, rook_index);
+    // we're only interested in the rook moves on the ray torwards the king
+    inward_rook_moves |= computeRookMoves(pos, opponent_persp, rook_index)  & getRayBetween(rook_index, king_index);
   }
   pinned_pieces |= outward_rook_moves & inward_rook_moves & our_pieces;
 
@@ -744,8 +751,10 @@ void MoveGenerator::dividePerft(const Position& pos, int depth) {
   MoveVec moves = generateMoves(pos);
   if (depth == 1) {
     for (const Move& move : moves) {
-      move.print(pos);
+      move.print(pos, true);
     }
+    printf("total: %zu\n", moves.size());
+    return;
   }
   int sum = 0;
   int move_total = 0;
@@ -753,7 +762,7 @@ void MoveGenerator::dividePerft(const Position& pos, int depth) {
     Position resultant_pos = pos.applyMove(move);
     move_total = computePerft(resultant_pos, depth - 1);
     sum += move_total;
-    printf("%s : %d\n", move.to_string(pos).c_str(), move_total);
+    printf("%s : %d\n", move.to_string(pos, true).c_str(), move_total);
   }
   printf("total: %d\n", sum);
 }

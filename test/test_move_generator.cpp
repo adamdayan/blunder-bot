@@ -340,7 +340,7 @@ TEST_CASE("test pinned + check isLegal()", "[move_generator]") {
   REQUIRE(move_gen.isLegal(legal_move, pos, persp, king_index, checkers, pinned_pieces));
 
   legal_move = Move(king_index,rankFileToIndex(5, 4), MoveType::Quiet);
-  REQUIRE(move_gen.isLegal(legal_move, pos, persp, king_index, checkers, pinned_pieces));
+  REQUIRE_FALSE(move_gen.isLegal(legal_move, pos, persp, king_index, checkers, pinned_pieces));
 
   legal_move = Move(king_index,rankFileToIndex(5, 3), MoveType::Quiet);
   REQUIRE(move_gen.isLegal(legal_move, pos, persp, king_index, checkers, pinned_pieces));
@@ -373,14 +373,7 @@ TEST_CASE("test generateMoves() initial position move count", "[move_generator]"
   REQUIRE(moves.size() == 20);
 }
 
-TEST_CASE("test perft(3) initial position", "[move_generator]") {
-  MoveGenerator move_gen;
-  std::string init_position = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
-  Position pos(init_position);
-  int move_count = move_gen.computePerft(pos, 3);
-  REQUIRE(move_count == 8902);
-}
-
+// TODO: maybe add a dedicated series of perft tests
 TEST_CASE("test perft(4) initial position", "[move_generator]") {
   MoveGenerator move_gen;
   std::string init_position = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
@@ -408,6 +401,22 @@ TEST_CASE("test generateMoves() kiwipete position move count", "[move_generator]
   }
   REQUIRE(capture_cnt == 8);
   REQUIRE(castle_cnt == 2);
+}
+
+TEST_CASE("test perft(3) kiwipete position", "[move_generator]") {
+  MoveGenerator move_gen;
+  std::string kp_position = "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq -";
+  Position pos(kp_position);
+  int move_count = move_gen.computePerft(pos, 3);
+  REQUIRE(move_count == 97862);
+}
+
+TEST_CASE("test perft(4) position2 position", "[move_generator]") {
+  MoveGenerator move_gen;
+  std::string p2_position = "8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - -";
+  Position pos(p2_position);
+  int move_count = move_gen.computePerft(pos, 4);
+  REQUIRE(move_count == 43238);
 }
 
 TEST_CASE("test generateMoves() check position move count", "[move_generator]") {

@@ -75,8 +75,6 @@ constexpr int WHITE_QUEENSIDE_ROOK_INIT_INDEX = 0;
 constexpr int BLACK_KINGSIDE_ROOK_INIT_INDEX = 63;
 constexpr int BLACK_QUEENSIDE_ROOK_INIT_INDEX = 56;
 
-const std::array<std::string, 8> file_to_name = {"A", "B", "C", "D", "E", "F", "G", "H"};
-
 const std::array<std::array<std::string, 6>, 2> piece_to_string = {{
     {{"P", "N", "B", "R", "Q", "K"}},
     {{"p", "n", "b", "r", "q", "k"}},

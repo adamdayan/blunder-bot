@@ -1,33 +1,17 @@
 #include "stdio.h"
 
-#include <position.h>
-#include <constants.h>
+#include "position.h"
+#include "constants.h"
 #include "useful_fens.h"
+#include "move_generator.h"
 
 
 int main() {
-  BitBoard bb;
-  bb.setBoard(2);
-  printf("bb.getLowestSetBit(%llu) = %d\n", bb.board, bb.getLowestSetBit()); 
-  printf("bb.getHighestSetBit(%llu) = %d\n", bb.board, bb.getHighestSetBit()); 
+  MoveGenerator move_gen;
+  std::string p2_position = "8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - -";
 
-  bb.setBoard(1);
-  printf("bb.getLowestSetBit(%llu) = %d\n", bb.board, bb.getLowestSetBit()); 
-  printf("bb.getHighestSetBit(%llu) = %d\n", bb.board, bb.getHighestSetBit()); 
-  bb.print();
-
-  bb.clear();
-  bb.setBit(6, 6);
-  bb.print();
-
-  Position pos;
-  pos.print();
-
-  pos.parseFEN(tricky_position);
-  pos.print();
-
-  pos.parseFEN(empty_board);
-  pos.print();
+  Position pos(p2_position);
+  move_gen.dividePerft(pos, 4); 
 
   return 0;
 }
