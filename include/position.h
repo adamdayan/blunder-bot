@@ -3,10 +3,12 @@
 
 #include <array>
 #include <ostream>
+#include <unordered_map>
 
 #include "bitboard.h"
 #include "constants.h"
 #include "useful_fens.h"
+#include "zobrist_hash.h"
 
 
 
@@ -60,7 +62,6 @@ class Position {
     // methods needed for detecting draws
     bool isDrawBy50Moves() const;
     bool isDrawByInsufficientMaterial() const;
-    // TODO: complete
     bool isDrawByRepetition() const;
 
     // makes the given move in place
@@ -86,6 +87,8 @@ class Position {
     std::array<std::array<bool, 2>, 2> castling_rights;
     int halfmove_clock = 0;
     int fullmove_cnt = 0;
+    ZobristHash hash;
+    std::unordered_map<unsigned long long, unsigned> hash_cnt;
 };
 
 #endif // POSITION_H 

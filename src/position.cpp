@@ -1,6 +1,7 @@
 #include "position.h"
 #include "constants.h"
 #include "utils.h"
+#include "zobrist_hash.h"
 #include <cstdio>
 
 void Move::print(const Position& pos, bool minimal) const {
@@ -130,6 +131,9 @@ void Position::parseFEN(const std::string& fen) {
     fen_idx++;
   }
   fullmove_cnt = std::stoi(fmc);
+  
+  // setup hash
+  hash = ZobristHash(*this);
 }
 
 Position::Position(const std::string& fen) {
@@ -202,12 +206,14 @@ void Position::addPiece(Colour colour, PieceType piece_type, int square_bit_inde
   bit_boards[colour][piece_type].setBit(square_bit_index);
   bit_boards[colour][PieceType::All].setBit(square_bit_index);
   all_pieces.setBit(square_bit_index);
+  hash.updatePiece(colour, piece_type, square_bit_index);
 }
 
 void Position::removePiece(Colour colour, PieceType piece_type, int square_bit_index) {
   bit_boards[colour][piece_type].clearBit(square_bit_index);
   bit_boards[colour][PieceType::All].clearBit(square_bit_index);
   all_pieces.clearBit(square_bit_index);
+  hash.updatePiece(colour, piece_type, square_bit_index);
 }
 
 std::pair<Colour, PieceType> Position::getColourPieceType(int square_bit_index) const {
@@ -288,7 +294,9 @@ bool Position::isDrawByInsufficientMaterial() const {
   return false;
 }
 
-
+bool Position::isDrawByRepetition() const {
+  return hash_cnt.find(hash.getHash())->second >= 3;
+}
 
 void Position::makeMove(const Move& move) {
   PieceType piece_type = getPieceType(side_to_move, move.source);
@@ -301,8 +309,10 @@ void Position::makeMove(const Move& move) {
     prepareRookMove(move);
   }
   
+  // if enpassant wasn't empty, remove it from hash
+  if (!enpassant.isEmpty())
+    hash.updateEnpassant(enpassant.getHighestSetBit());
   // clear last turn's enpassant board
-  // TODO: check this doesn't break any of makeMove()
   enpassant.clear();
   if (piece_type == PieceType::Pawn) {
     int source_rank = indexToRank(move.source);
@@ -335,12 +345,22 @@ void Position::makeMove(const Move& move) {
   } else if (move.move_type == MoveType::KingsideCastle || move.move_type == MoveType::QueensideCastle) {
     makeCastle(move);
   }
+  // TODO: see if this is sped up by just XOR'ing i.e. side_to_move ^=1
+  hash.updateSide(side_to_move);
   side_to_move = invertColour(side_to_move);
+  hash.updateSide(side_to_move);
+
   // capturing or moving a pawn resets the halfmove clock
   if (move.move_type == MoveType::Capture || move.move_type == MoveType::EnPassantCapture || piece_type == PieceType::Pawn) {
     halfmove_clock = 0;
   } else {
     halfmove_clock++;
+  }
+
+  if (hash_cnt.find(hash.getHash()) != hash_cnt.end()) {
+    hash_cnt[hash.getHash()]++;
+  } else {
+    hash_cnt[hash.getHash()] = 1;
   }
 }
 
@@ -400,25 +420,32 @@ void Position::makeCastle(const Move& move) {
 }
 
 void Position::prepareDoublePawnPush(const Move& move) {
+  int enpassant_square;
   if (side_to_move == Colour::White) {
-    enpassant.setBit(move.dest - 8);
+    enpassant_square = move.dest - 8;
   } else {
-    enpassant.setBit(move.dest + 8);
+    enpassant_square = move.dest + 8;
   }
+  enpassant.setBit(enpassant_square);
+  hash.updateEnpassant(enpassant_square);
 }
 
 void Position::prepareRookMove(const Move& move) {
   if (side_to_move == Colour::White) {
-    if (move.source == WHITE_KINGSIDE_ROOK_INIT_INDEX) {
+    if (move.source == WHITE_KINGSIDE_ROOK_INIT_INDEX && castling_rights[side_to_move][CastlingType::Kingside]) {
       castling_rights[side_to_move][CastlingType::Kingside] = false;
-    } else if (move.source == WHITE_QUEENSIDE_ROOK_INIT_INDEX) {
+      hash.updateCastlingRights(side_to_move, CastlingType::Kingside);
+    } else if (move.source == WHITE_QUEENSIDE_ROOK_INIT_INDEX && castling_rights[side_to_move][CastlingType::Queenside]) {
       castling_rights[side_to_move][CastlingType::Queenside] = false;
+      hash.updateCastlingRights(side_to_move, CastlingType::Queenside);
     }
   } else {
-    if (move.source == BLACK_KINGSIDE_ROOK_INIT_INDEX) {
+    if (move.source == BLACK_KINGSIDE_ROOK_INIT_INDEX && castling_rights[side_to_move][CastlingType::Kingside]) {
       castling_rights[side_to_move][CastlingType::Kingside] = false;
-    } else if (move.source == BLACK_QUEENSIDE_ROOK_INIT_INDEX) {
+      hash.updateCastlingRights(side_to_move, CastlingType::Kingside);
+    } else if (move.source == BLACK_QUEENSIDE_ROOK_INIT_INDEX && castling_rights[side_to_move][CastlingType::Queenside]) {
       castling_rights[side_to_move][CastlingType::Queenside] = false;
+      hash.updateCastlingRights(side_to_move, CastlingType::Queenside);
     }
   }
 }

@@ -110,7 +110,10 @@ class MoveGenerator {
     // returns a bitboard of all absolutely pinned pieces
     BitBoard getPinnedPieces(const Position& pos, const BoardPerspective& persp);
 
+    // returns total number of legal moves from the given position to the given depth
     int computePerft(const Position& pos, int depth);
+    // prints the moves 1-deep from the given position and the count of legal
+    // child moves from those 1-deep positions
     void dividePerft(const Position& pos, int depth);
 
   private:

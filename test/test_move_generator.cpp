@@ -403,6 +403,7 @@ TEST_CASE("test generateMoves() kiwipete position move count", "[move_generator]
   REQUIRE(castle_cnt == 2);
 }
 
+// positions taken from https://www.chessprogramming.org/Perft_Results 
 TEST_CASE("test perft(3) kiwipete position", "[move_generator]") {
   MoveGenerator move_gen;
   std::string kp_position = "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq -";
@@ -411,7 +412,7 @@ TEST_CASE("test perft(3) kiwipete position", "[move_generator]") {
   REQUIRE(move_count == 97862);
 }
 
-TEST_CASE("test perft(4) position2 position", "[move_generator]") {
+TEST_CASE("test perft(4) position3 position", "[move_generator]") {
   MoveGenerator move_gen;
   std::string p2_position = "8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - -";
   Position pos(p2_position);

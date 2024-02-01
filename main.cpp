@@ -4,14 +4,17 @@
 #include "constants.h"
 #include "useful_fens.h"
 #include "move_generator.h"
+#include "zobrist_hash.h"
 
 
 int main() {
-  MoveGenerator move_gen;
-  std::string p2_position = "8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - -";
+  ZobristHash::initialiseKeys();
 
-  Position pos(p2_position);
-  move_gen.dividePerft(pos, 4); 
+  MoveGenerator move_gen;
+  std::string  kp_position = "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq -";
+
+  Position pos(kp_position);
+  move_gen.dividePerft(pos, 3); 
 
   return 0;
 }
