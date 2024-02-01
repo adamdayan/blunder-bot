@@ -115,6 +115,71 @@ TEST_CASE("test capture promotion makeMove()", "[position]") {
   REQUIRE(pos.getPieceBitBoard(Colour::Black, PieceType::Queen).isEmpty());
 }
 
+TEST_CASE("test hash after move", "[position]") {
+  ZobristHash::initialiseKeys();
+  std::string pre_move_position =  "r3k2r/p1ppqpb1/bn2pnp1/3PN3/Pp2P3/2N2Q1p/1PPBBPPP/R3K2R w KQkq - 0 1";
+  Position pos(pre_move_position);
+  Move move = Move(9, 17, MoveType::Quiet);
+  pos.makeMove(move);
 
+  std::string post_move_position = "r3k2r/p1ppqpb1/bn2pnp1/3PN3/Pp2P3/1PN2Q1p/2PBBPPP/R3K2R b KQkq - 0 1";
+  Position post_pos(post_move_position);
+
+  REQUIRE(pos.getHash() != 0);
+  REQUIRE(pos.getHash() == post_pos.getHash());
+}
+
+TEST_CASE("test hash after castling", "[position]") {
+  ZobristHash::initialiseKeys();
+  std::string pre_castle_position =  "r3k2r/p1ppqpb1/bn2pnp1/3PN3/Pp2P3/2N2Q1p/1PPBBPPP/R3K2R w KQkq - 0 1";
+  Position pos(pre_castle_position);
+  Move castle_move = Move(4, 6, MoveType::KingsideCastle);
+  pos.makeMove(castle_move);
+
+  std::string post_castle_position = "r3k2r/p1ppqpb1/bn2pnp1/3PN3/Pp2P3/2N2Q1p/1PPBBPPP/R4RK1 b kq - 0 1";
+  Position post_pos(post_castle_position);
+
+  REQUIRE(pos.getHash() != 0);
+  REQUIRE(pos.getHash() == post_pos.getHash());
+}
+
+TEST_CASE("test hash after en passant", "[position]") {
+  ZobristHash::initialiseKeys();
+  std::string pre_ep_position =  "r3k2r/p1ppqpb1/bn2pnp1/3PN3/Pp2P3/2N2Q1p/1PPBBPPP/R3K2R w KQkq - 0 1";
+  Position pos(pre_ep_position);
+  Move ep_move = Move(14, rankFileToIndex(3, 6), MoveType::Quiet);
+  pos.makeMove(ep_move);
+
+  std::string post_ep_position = "r3k2r/p1ppqpb1/bn2pnp1/3PN3/Pp2P1P1/2N2Q1p/1PPBBP1P/R3K2R b KQkq g3 0 1";
+  Position post_pos(post_ep_position);
+
+  REQUIRE(pos.getHash() != 0);
+  REQUIRE(pos.getHash() == post_pos.getHash());
+}
+
+TEST_CASE("test drawByRepetition()", "[position]") {
+  ZobristHash::initialiseKeys();
+  std::string starting_pos =  "r3k2r/p1ppqpb1/bn2pnp1/3PN3/Pp2P3/2N2Q1p/1PPBBPPP/R3K2R w KQkq - 0 1";
+  Position pos(starting_pos);
+  
+  // repeat starting position further 2 times
+  for (int i = 0; i < 2; i++) {
+    Move w1_move = Move(rankFileToIndex(4, 4), rankFileToIndex(2, 3), MoveType::Quiet);
+    pos.makeMove(w1_move);
+
+    Move b1_move = Move(rankFileToIndex(5, 1), rankFileToIndex(7, 2), MoveType::Quiet);
+    pos.makeMove(b1_move);
+
+    Move w2_move = Move(rankFileToIndex(2, 3), rankFileToIndex(4, 4), MoveType::Quiet);
+    pos.makeMove(w2_move);
+
+    REQUIRE_FALSE(pos.isDrawByRepetition());
+
+    Move b2_move = Move(rankFileToIndex(7, 2), rankFileToIndex(5, 1), MoveType::Quiet);
+    pos.makeMove(b2_move);
+  }
+
+  REQUIRE(pos.isDrawByRepetition());
+}
 
 // TODO: add more Position tests

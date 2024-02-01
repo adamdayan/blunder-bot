@@ -134,6 +134,7 @@ void Position::parseFEN(const std::string& fen) {
   
   // setup hash
   hash = ZobristHash(*this);
+  hash_cnt[hash.getHash()] = 1;
 }
 
 Position::Position(const std::string& fen) {
@@ -301,7 +302,15 @@ bool Position::isDrawByRepetition() const {
 void Position::makeMove(const Move& move) {
   PieceType piece_type = getPieceType(side_to_move, move.source);
   // if the king moves we lose castling rights
-  if (piece_type == PieceType::King) {
+  if (piece_type == PieceType::King &&
+      !(move.move_type == MoveType::KingsideCastle ||
+        move.move_type == MoveType::QueensideCastle)) {
+    // only want to update hash if we're actually changing something
+    if (castling_rights[side_to_move][CastlingType::Kingside]) {
+      hash.updateCastlingRights(side_to_move, CastlingType::Kingside);
+    } if (castling_rights[side_to_move][CastlingType::Queenside]) {
+      hash.updateCastlingRights(side_to_move, CastlingType::Queenside);
+    }
     castling_rights[side_to_move] = {false, false};
   }
   // if castle moves from init position we lose castling rights on that side
@@ -370,6 +379,10 @@ Position Position::applyMove(const Move& move) const {
   return new_pos;
 }
 
+unsigned long long Position::getHash() const {
+  return hash.getHash();
+}
+
 void Position::makeCapture(const Move& move) {
   PieceType enemy_piece_type = getPieceType(invertColour(side_to_move), move.dest); 
   // capturing a rook can remove castling rights
@@ -417,6 +430,11 @@ void Position::makeCastle(const Move& move) {
       addPiece(side_to_move, PieceType::King, 58);
     }
   }
+
+  // can't castle again after you've castled
+  castling_rights[side_to_move] = {false, false};
+  hash.updateCastlingRights(side_to_move, CastlingType::Kingside);
+  hash.updateCastlingRights(side_to_move, CastlingType::Queenside);
 }
 
 void Position::prepareDoublePawnPush(const Move& move) {

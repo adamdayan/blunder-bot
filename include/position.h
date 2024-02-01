@@ -69,6 +69,8 @@ class Position {
     // returns a new position with the given move made
     Position applyMove(const Move& move) const;
 
+    unsigned long long getHash() const;
+
   private:
     void prepareDoublePawnPush(const Move& move);
     void prepareRookMove(const Move& move);
@@ -88,6 +90,8 @@ class Position {
     int halfmove_clock = 0;
     int fullmove_cnt = 0;
     ZobristHash hash;
+    // NOTE: using an unordered map might not be very efficient compared to some
+    // handrolled simpler map - investigate performance implications
     std::unordered_map<unsigned long long, unsigned> hash_cnt;
 };
 

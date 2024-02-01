@@ -60,6 +60,7 @@ ZobristHash::ZobristHash(const Position& pos) {
     }
   }
 
+  // hash side to move
   updateSide(pos.getSideToMove());
 }
 
