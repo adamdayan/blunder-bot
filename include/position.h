@@ -2,7 +2,6 @@
 #define POSITION_H 
 
 #include <array>
-#include <ostream>
 #include <unordered_map>
 
 #include "bitboard.h"
@@ -10,24 +9,33 @@
 #include "useful_fens.h"
 #include "zobrist_hash.h"
 
-
-
 class Position;
 
-// TODO: decide what on earth this class will look like
 class Move {
   public:
-    // promotion=PieceType::All means no promotion
-    Move(int source, int dest, MoveType move_type, PieceType promotion = PieceType::All) : source(source), dest(dest), move_type(move_type), promotion(promotion) {};
+    Move() = default;
+    // promotion=PieceType::None means no promotion
+    Move(int source, int dest, MoveType move_type, PieceType promotion = PieceType::None) : source(source), dest(dest), move_type(move_type), promotion(promotion) {};
     // prints a more human readable move description
     void print(const Position& pos, const bool minimal=false) const;
     std::string to_string(const Position& pos, const bool minimal) const;
+    bool operator==(const Move& move) const;
 
     int source;
     int dest;
     MoveType move_type;
     PieceType promotion;
 };
+
+// define custom hasher for Move
+namespace std {
+  template<>
+  struct hash<Move> {
+    size_t operator()(const Move& move) const {
+      return hash<int>()(move.source) ^ hash<int>()(move.dest) ^ hash<int>()(move.move_type) ^ hash<int>()(move.promotion);
+    }
+  };
+}
 
 class Position {
   public:

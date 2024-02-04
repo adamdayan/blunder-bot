@@ -117,7 +117,7 @@ class MoveGenerator {
     void dividePerft(const Position& pos, int depth);
 
   private:
-    void extractPawnMoves(BitBoard bb, int offset, MoveType type, MoveVec& moves, PieceType promotion = PieceType::All);
+    void extractPawnMoves(BitBoard bb, int offset, MoveType type, MoveVec& moves, PieceType promotion = PieceType::None);
     void extractPieceMoves(BitBoard bb, int source, MoveType type, MoveVec& moves);
     BitBoard getRayBetween(int s1_index, int s2_index);
     BoardMatrix<std::array<BitBoard, 8>> rays;

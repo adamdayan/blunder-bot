@@ -19,6 +19,11 @@ std::string Move::to_string(const Position& pos, bool minimal) const {
   return piece_name + " " + source_name + " " + dest_name;
 }
 
+bool Move::operator==(const Move &other_move) const {
+  return source == other_move.source && dest == other_move.dest &&
+         move_type == other_move.move_type && promotion == other_move.promotion;
+}
+
 void Position::clear() {
   for (int colour = Colour::White; colour <= Colour::Black; colour++) {
     for (int piece = PieceType::Pawn; piece <= PieceType::All; piece++) {
@@ -332,10 +337,10 @@ void Position::makeMove(const Move& move) {
     }
   }
 
-  if (move.move_type ==  MoveType::Quiet && move.promotion == PieceType::All) {
+  if (move.move_type ==  MoveType::Quiet && move.promotion == PieceType::None) {
     removePiece(side_to_move, piece_type, move.source);
     addPiece(side_to_move, piece_type, move.dest);
-  } else if (move.move_type == MoveType::Capture && move.promotion == PieceType::All) {
+  } else if (move.move_type == MoveType::Capture && move.promotion == PieceType::None) {
     makeCapture(move);
     removePiece(side_to_move, piece_type, move.source);
     addPiece(side_to_move, piece_type, move.dest);
@@ -344,10 +349,10 @@ void Position::makeMove(const Move& move) {
     removePiece(invertColour(side_to_move), PieceType::Pawn, move.dest + enpassant_offset);
     removePiece(side_to_move, piece_type, move.source);
     addPiece(side_to_move, piece_type, move.dest);
-  } else if (move.move_type == MoveType::Quiet && move.promotion != PieceType::All) {
+  } else if (move.move_type == MoveType::Quiet && move.promotion != PieceType::None) {
     removePiece(side_to_move, piece_type, move.source);
     addPiece(side_to_move, move.promotion, move.dest);
-  } else if (move.move_type == MoveType::Capture && move.promotion != PieceType::All) {
+  } else if (move.move_type == MoveType::Capture && move.promotion != PieceType::None) {
     makeCapture(move);
     removePiece(side_to_move, piece_type, move.source);
     addPiece(side_to_move, move.promotion, move.dest);
