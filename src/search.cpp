@@ -9,18 +9,20 @@
 Move GumbelMCTS::getBestMove(const Position& pos) {
   std::unique_ptr<Node> root = std::make_unique<Node>(pos, move_gen.generateMoves(pos));
 
-}
-
-int GumbelMCTS::select(Node* node) {
   std::vector<Node*> nodes_to_consider;
-  for (const std::unique_ptr<Node>& child : node->expanded_children) {
+  for (const std::unique_ptr<Node>& child : root->expanded_children) {
     nodes_to_consider.push_back(child.get());
   }
 
   nodes_to_consider = getKGumbelArgtop(nodes_to_consider, std::min<int>(N_TO_CONSIDER, nodes_to_consider.size()));
   for (Node*& child : nodes_to_consider) {
-    node->value += visit(child);
+    root->value += visit(child);
   }
+
+  // NOTE: when we are training with self-play we will need to save the
+  // completed Q-values somewhere
+  Node* best_move = applySequentialHalving(root.get(), nodes_to_consider);
+  return best_move->move;
 }
 
 // comparison func to sort nodes into descending order of processed_prior
@@ -44,8 +46,46 @@ std::vector<Node*> GumbelMCTS::getKGumbelArgtop(std::vector<Node*>& input_nodes,
   return nodes_to_consider;
 }
 
-Node* GumbelMCTS::applySequentialHalving(std::vector<Node*>& nodes_to_consider, int n_simulations) {
-  // IMPLEMENT!!!
+Node* GumbelMCTS::applySequentialHalving(Node* root, std::vector<Node*>& nodes_to_consider) {
+  int n_simulations = simulation_budget;
+  // repeatedly halve the number of nodes we're considering until we only have 1
+  // remaining
+  while (nodes_to_consider.size() > 1) {
+    // number of times to visit each node under consideration
+    int n_visits = n_simulations / (std::log(nodes_to_consider.size()) * nodes_to_consider.size());
+    int max_visit_cnt = std::numeric_limits<int>::min();
+    for (Node* child : nodes_to_consider) {
+      for (int i = 0; i < n_visits; i++) {
+        root->value += visit(child);
+        n_simulations--;
+      }
+      max_visit_cnt = std::max(max_visit_cnt, child->visit_count);
+    }
+
+    // NOTE: unsure if this is needed
+    // if we have left over simulations on the final iteration due to rounding,
+    // spend the remaining budget
+    if (nodes_to_consider.size() == 2 || nodes_to_consider.size() == 3 && n_simulations > 0) {
+        int remaining_visits = n_simulations / nodes_to_consider.size();
+        for (Node* child : nodes_to_consider) {
+          for (int i = 0; i < remaining_visits; i++) {
+            root->value += visit(child);
+          }
+        }
+    }
+
+    for (Node* child : nodes_to_consider) {
+      // calculate σ(ˆq(a))
+      double sigma_qhat = (C_VISIT + max_visit_cnt) * (C_SCALE * child->value);
+      child->score = child->raw_prior + child->applied_gumbel + sigma_qhat;
+    }
+
+    // remove the worst half
+    std::sort(nodes_to_consider.begin(), nodes_to_consider.end(), nodeCompare);
+    nodes_to_consider.resize(static_cast<int>(nodes_to_consider.size() / 2));
+  }
+
+  return nodes_to_consider[0];
 }
 
 void GumbelMCTS::expandAndEvaluate(Node* node) {
@@ -72,6 +112,7 @@ void GumbelMCTS::expandAndEvaluate(Node* node) {
   }
 }
 
+// NOTE: when I make this multi-threaded I suspect this would be the place to start
 int GumbelMCTS::visit(Node* node) {
   // if the node is unexpanded, expand it
   if (node->expanded_children.size() == 0) {
@@ -89,10 +130,10 @@ int GumbelMCTS::visit(Node* node) {
         best_child = child.get();
       }
     }
-    node->value += visit(best_child);
+    // TODO: double check this should be negative
+    node->value += -visit(best_child);
   }
 
-  // NOTE: should this be negative value because side has switched? 
   node->visit_count++;
   return node->value;
 }

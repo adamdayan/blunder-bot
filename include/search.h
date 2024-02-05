@@ -13,6 +13,10 @@
 constexpr int N_TO_CONSIDER = 16;
 constexpr int N_SIMULATIONS = 200;
 
+// hyperparameters taken from Danihelka, 2022
+constexpr int C_VISIT = 50;
+constexpr double C_SCALE = 1.0;
+
 class GumbelMCTS;
 
 struct Node {
@@ -34,8 +38,7 @@ struct Node {
   const Move move;
   const Position pos;
   bool is_root = false;
-  // NOTE: will these actually be the only place we have pointers to these
-  // nodes?
+
   std::vector<std::unique_ptr<Node>> expanded_children;
   MoveVec unexpanded_children;
 };
@@ -45,26 +48,27 @@ struct Node {
 // https://openreview.net/pdf?id=bERaNdoegnO
 class GumbelMCTS {
   public:
-    GumbelMCTS(Net* net) : net(net) {}
+    GumbelMCTS(Net* net, int simulation_budget) : net(net), simulation_budget(simulation_budget) {}
+    // executes Gumbel MCTS from a given position to find best move
     Move getBestMove(const Position& pos);
-    int select(Node* node);
 
     // returns k nodes with highest prior + gumbel, called in argtop in Danihelka, 2022
     std::vector<Node*> getKGumbelArgtop(std::vector<Node*>& input_nodes, int k);
 
     // uses sequential halving to winnow the nodes to consider into 1 node
     // employing only a budget of n simulations
-    Node* applySequentialHalving(std::vector<Node*>& nodes_to_consider, int n_simulations);
+    Node* applySequentialHalving(Node* root, std::vector<Node*>& nodes_to_consider);
 
     // runs value head on child node and expands its children
     void expandAndEvaluate(Node* node);
 
     // called recursively to find unexpanded nodes and backpropagate their eval
-    // up the tree. returns std::pair<value, vist_count>
+    // up the tree. returns value of node
     int visit(Node* node);
   private:
     MoveGenerator move_gen;
     Net* net;
+    int simulation_budget;
     std::random_device rd{};
     std::mt19937 gen{rd()};
     std::extreme_value_distribution<float> gumbel_dist{0.0};
