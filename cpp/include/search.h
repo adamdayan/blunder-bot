@@ -38,6 +38,7 @@ struct Node {
   const Move move;
   const Position pos;
   bool is_root = false;
+  bool is_terminal = false;
 
   std::vector<std::unique_ptr<Node>> expanded_children;
   MoveVec unexpanded_children;

@@ -68,6 +68,7 @@ class Position {
     PieceType getPieceType(Colour colour, int square_bit_index) const;
 
     // methods needed for detecting draws
+    bool isDraw() const;
     bool isDrawBy50Moves() const;
     bool isDrawByInsufficientMaterial() const;
     bool isDrawByRepetition() const;

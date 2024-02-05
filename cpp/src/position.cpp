@@ -242,6 +242,10 @@ PieceType Position::getPieceType(Colour colour, int square_bit_index) const {
   return PieceType::None;
 }
 
+bool Position::isDraw() const {
+  return isDrawBy50Moves() || isDrawByRepetition() || isDrawByInsufficientMaterial();
+}
+
 bool Position::isDrawBy50Moves() const {
   return halfmove_clock >= MAX_HALFMOVE_CNT;
 }

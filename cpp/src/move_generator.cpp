@@ -701,6 +701,13 @@ BitBoard MoveGenerator::getAttackers(const Position& pos, const BoardPerspective
   return attacking_bishops | attacking_rooks | attacking_queens | attacking_knights | attacking_kings | attacking_pawns;
 }
 
+bool MoveGenerator::isCheck(const Position& pos) {
+  BoardPerspective persp(pos.getSideToMove());
+  int king_index = pos.getPieceBitBoard(persp.side_to_move, PieceType::King).getHighestSetBit();
+  BitBoard checkers = getAttackers(pos, persp, king_index);
+  return !checkers.isEmpty();
+}
+
 MoveVec MoveGenerator::generateMoves(const Position& pos) {
   // directions switch depending on side to move
   BoardPerspective persp(pos.getSideToMove());

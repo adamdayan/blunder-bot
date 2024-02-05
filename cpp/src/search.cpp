@@ -52,10 +52,10 @@ Node* GumbelMCTS::applySequentialHalving(Node* root, std::vector<Node*>& nodes_t
   // remaining
   while (nodes_to_consider.size() > 1) {
     // number of times to visit each node under consideration
-    int n_visits = n_simulations / (std::log(nodes_to_consider.size()) * nodes_to_consider.size());
+    int n_visits_per_node = n_simulations / (std::log(nodes_to_consider.size()) * nodes_to_consider.size());
     int max_visit_cnt = std::numeric_limits<int>::min();
     for (Node* child : nodes_to_consider) {
-      for (int i = 0; i < n_visits; i++) {
+      for (int i = 0; i < n_visits_per_node; i++) {
         root->value += visit(child);
         n_simulations--;
       }
@@ -96,6 +96,28 @@ void GumbelMCTS::expandAndEvaluate(Node* node) {
 
   // expand node
   MoveVec legal_moves = move_gen.generateMoves(node->pos);
+
+  // if we have no legal moves we must be checkmated or stalemated
+  if (legal_moves.size() == 0) {
+    // if not legal moves and king is in check then we have checkmate
+    if (move_gen.isCheck(node->pos)) {
+      node->value = -1;
+    } else {
+      // otherwise must be stalemate
+      node->value = 0;
+    }
+    node->is_terminal = true;
+    return;
+  }
+
+  // if it's a draw
+  if (node->pos.isDraw()) {
+    node->is_terminal = true;
+    node->value = 0;
+    return;
+  }
+
+  // otherwise evaluate position and add nodes for policy head's suggested moves
   std::unordered_set<Move> legal_move_set(legal_moves.begin(), legal_moves.end());
   std::vector<std::pair<Move, float>> moves_and_priors;
   // save the value head's evaluation of the position

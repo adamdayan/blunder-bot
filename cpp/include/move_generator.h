@@ -110,6 +110,9 @@ class MoveGenerator {
     // returns a bitboard of all absolutely pinned pieces
     BitBoard getPinnedPieces(const Position& pos, const BoardPerspective& persp);
 
+    // returns true if king is in check
+    bool isCheck(const Position& pos);
+
     // returns total number of legal moves from the given position to the given depth
     int computePerft(const Position& pos, int depth);
     // prints the moves 1-deep from the given position and the count of legal

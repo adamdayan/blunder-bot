@@ -16,7 +16,7 @@ set(PROJECT_BINARY_DIR ${CMAKE_SOURCE_DIR}/out/)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR})
 
 # main binary
-add_subdirectory(src/)
+add_subdirectory(cpp/)
 
 add_executable(blunder_bot main.cpp)
 target_link_libraries(blunder_bot BlunderLib)
