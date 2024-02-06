@@ -35,3 +35,8 @@ compile_commands.json
 *.exe
 *.out
 *.app
+
+# pythony stuff
+*.env
+*.pyc
+*__pycache__
