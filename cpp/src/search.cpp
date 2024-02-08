@@ -8,6 +8,7 @@
 
 Move GumbelMCTS::getBestMove(const Position& pos) {
   std::unique_ptr<Node> root = std::make_unique<Node>(pos, move_gen.generateMoves(pos));
+  expandAndEvaluate(root.get());  
 
   std::vector<Node*> nodes_to_consider;
   for (const std::unique_ptr<Node>& child : root->expanded_children) {
@@ -121,7 +122,7 @@ void GumbelMCTS::expandAndEvaluate(Node* node) {
   std::unordered_set<Move> legal_move_set(legal_moves.begin(), legal_moves.end());
   std::vector<std::pair<Move, float>> moves_and_priors;
   // save the value head's evaluation of the position
-  node->value = net->evaluatePosition(node->pos, moves_and_priors);
+  node->value = net->getEvaluation(node->pos, moves_and_priors);
   // iterate through all moves suggested by net's policy head 
   for (const auto& move_prior : moves_and_priors) {
     // but only add nodes for the legal moves suggested by policy head

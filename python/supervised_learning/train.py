@@ -35,6 +35,7 @@ def train(model, dataloader, optim):
 
             optim.zero_grad()
             loss.backward()
+            optim.step()
     return loss_total / cnt
 
 def evaluate(model, dataloader):
@@ -75,6 +76,7 @@ print("creating net")
 input_channels = 66
 intermediate_channels = 64
 n_epochs = 10
+model_path = "supervised_learning_model.pt"
 
 net = BlunderNet(
   input_channels=input_channels, intermediate_channels=intermediate_channels
@@ -97,7 +99,11 @@ for epoch in range(n_epochs):
   val_losses.append(val_loss)
   if val_loss < cur_best_loss:
     cur_best_loss = val_loss
-    torch.save(net.state_dict(), "supervised_learning_model.pt")
+    torch.save(net.state_dict(), model_path)
 
 test_loss = evaluate(net, test_dataloader)
 print(f"{test_loss=}")
+
+net.load_state_dict(torch.load(model_path))
+scripted_net = torch.jit.script(net)
+scripted_net.save("scripted_" + model_path)

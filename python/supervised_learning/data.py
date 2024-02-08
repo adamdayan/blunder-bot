@@ -51,7 +51,7 @@ def move_to_tensor(move: chess.Move):
       rebased_to = move.to_square - 57
       side = 0 
     else:
-      rebased_from = move.from_square - 8
+      rebased_from = move.from_square + 8
       rebased_to = move.to_square
       side = 1
 
@@ -71,9 +71,9 @@ class LichessDataset(Dataset):
       if (game.end().ply() > 2):
         self.games.append(game)
       # TODO: just for local testing
-      # i+=1
-      # if i > 200:
-      #   break
+      i+=1
+      if i > 200:
+        break
   
   def __len__(self):
     return len(self.games)

@@ -3,7 +3,7 @@ import torch.nn.functional as F
 
 def calculate_loss(policy_hat, value_hat, policy, value):
   policy_loss = F.cross_entropy(policy_hat, policy.squeeze(1))
-  value_loss = F.mse_loss(value_hat.float(), value.float())
+  value_loss = F.mse_loss(value_hat.float().squeeze(1), value.float())
   return policy_loss + value_loss
 
 class InputBlock(nn.Module):

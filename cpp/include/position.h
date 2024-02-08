@@ -40,7 +40,7 @@ namespace std {
 class Position {
   public:
     // initialises Position, uses start position as default
-    Position(const std::string& fen = start_position);
+    Position(const std::string& fen = start_position, const Position* parent_pos = nullptr);
 
     // sets all bitboards to 0
     void clear();
@@ -58,8 +58,11 @@ class Position {
     std::array<BitBoard, 7> getPieceBitBoardsByColour(Colour colour) const;
     BitBoard getAllPiecesBitBoard() const;
     BitBoard getEnpassantBitBoard() const;
+    // returns true if there is a piece on the square
+    bool isOccupied(int square_index) const;
     Colour getSideToMove() const;
     bool canCastle(Colour colour, CastlingType castling_type) const;
+    const Position* getParent() const;
 
     void addPiece(Colour colour, PieceType piece_type, int square_bit_index);
     void removePiece(Colour colour, PieceType piece_type, int square_bit_index);
@@ -86,6 +89,8 @@ class Position {
     void makeCapture(const Move& move);
     void makeRookCapture(const Move& move);
     void makeCastle(const Move& move);
+
+    const Position* parent;
 
     // NOTE: is this double array + member more horrible than 1 enum with all
     // options?

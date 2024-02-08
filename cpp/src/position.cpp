@@ -142,8 +142,9 @@ void Position::parseFEN(const std::string& fen) {
   hash_cnt[hash.getHash()] = 1;
 }
 
-Position::Position(const std::string& fen) {
+Position::Position(const std::string& fen, const Position* parent_pos) {
   parseFEN(fen);
+  parent = parent_pos;
 }
 
 void Position::print() const {
@@ -200,12 +201,20 @@ BitBoard Position::getEnpassantBitBoard() const {
   return enpassant;
 }
 
+bool Position::isOccupied(int square_index) const {
+  return all_pieces.getBit(square_index);  
+}
+
 Colour Position::getSideToMove() const {
   return side_to_move;
 }
 
 bool Position::canCastle(Colour colour, CastlingType castling_type) const {
   return castling_rights[colour][castling_type];
+}
+
+const Position* Position::getParent() const {
+  return parent;
 }
 
 void Position::addPiece(Colour colour, PieceType piece_type, int square_bit_index) {
@@ -384,6 +393,7 @@ void Position::makeMove(const Move& move) {
 
 Position Position::applyMove(const Move& move) const {
   Position new_pos(*this);
+  new_pos.parent = this;
   new_pos.makeMove(move);
   return new_pos;
 }

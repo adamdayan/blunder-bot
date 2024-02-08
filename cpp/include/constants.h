@@ -125,4 +125,8 @@ constexpr int WHITE_PAWN_WEST_CAPTURE_OFFSET = 7;
 constexpr int BLACK_PAWN_EAST_CAPTURE_OFFSET = -7;
 constexpr int BLACK_PAWN_WEST_CAPTURE_OFFSET = -9;
 
+// numbers relevant to tensor representation of board 
+constexpr int POS_HISTORY_LEN = 5;
+constexpr float MIN_POLICY_PROB = 0.001;
+
 #endif // CONSTANTS_H
