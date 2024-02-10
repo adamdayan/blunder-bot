@@ -1,3 +1,4 @@
+import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
@@ -5,6 +6,10 @@ def calculate_loss(policy_hat, value_hat, policy, value):
   policy_loss = F.cross_entropy(policy_hat, policy.squeeze(1))
   value_loss = F.mse_loss(value_hat.float().squeeze(1), value.float())
   return policy_loss + value_loss
+
+def calculate_policy_accuracy(policy_hat, policy):
+  max_idxs = torch.argmax(policy_hat, dim=1).unsqueeze(1)
+  return (max_idxs.to("cpu") == policy.to("cpu")).sum() / policy.shape[0]
 
 class InputBlock(nn.Module):
   def __init__(self, input_channels, output_channels):
@@ -67,7 +72,7 @@ class BlunderNet(nn.Module):
   def __init__(self, input_channels, intermediate_channels):
     super().__init__()
     self.input_block = InputBlock(input_channels, intermediate_channels)
-    self.main_trunk = nn.ModuleList([ResidualBlock(intermediate_channels)] * 8)
+    self.main_trunk = nn.ModuleList([ResidualBlock(intermediate_channels)] * 16)
     self.policy_head = PolicyHead(intermediate_channels)
     self.value_head = ValueHead(intermediate_channels)
 

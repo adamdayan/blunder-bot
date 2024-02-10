@@ -6,7 +6,7 @@ from torch.utils.data import random_split, DataLoader
 from tqdm import tqdm
 
 from data import LichessDataset
-from model import BlunderNet, calculate_loss
+from model import BlunderNet, calculate_loss, calculate_policy_accuracy
 
 
 SEED = 42
@@ -33,10 +33,12 @@ def train(model, dataloader, optim):
             loss_total += loss.item()
             cnt += 1
 
+            accuracy = calculate_policy_accuracy(policy_hat, policy)
+
             optim.zero_grad()
             loss.backward()
             optim.step()
-    return loss_total / cnt
+    return (loss_total / cnt) , accuracy
 
 def evaluate(model, dataloader):
     loss_total = 0
@@ -56,26 +58,42 @@ def evaluate(model, dataloader):
                 loss_total += loss.item()
                 cnt += 1
 
-    return loss_total / cnt
+                accuracy = calculate_policy_accuracy(policy_hat, policy)
+
+    return (loss_total / cnt), accuracy
 
 
 print("loading dataset")
 start = time.time()
-ld = LichessDataset(["/home/adam/Downloads/lichess_elite/lichess_elite_2020-06.pgn"])
+
+dataset_root_path = "/home/adam/Downloads/lichess_elite/"
+# dataset_root_path = "/root/data/"
+train_dataset = LichessDataset([dataset_root_path + path for path in ["lichess_elite_2020-05.pgn", "lichess_elite_2020-04.pgn", "lichess_elite_2020-03.pgn"]])
+val_dataset = LichessDataset([dataset_root_path + path for path in ["lichess_elite_2020-06.pgn"]])
+test_dataset = LichessDataset([dataset_root_path + path for path in ["lichess_elite_2023-07.pgn"]])
+
 end = time.time()
 print(f"dur: {end - start}")
 
+# TODO: delete
+# for i, d in enumerate(train_dataset):
+#     if i >= 2:
+#         print(d[1])
+#         break
+    # print(d[0][6])
+
+# exit()
+
 print("splitting dataset and initialising dataloaders")
-train_dataset, val_dataset, test_dataset = random_split(ld, [0.8, 0.1, 0.1])
-train_dataloader = DataLoader(train_dataset, batch_size=64)
-val_dataloader = DataLoader(val_dataset, batch_size=256)
-test_dataloader = DataLoader(test_dataset, batch_size=256)
+train_dataloader = DataLoader(train_dataset, batch_size=1024, pin_memory=True, num_workers=3)
+val_dataloader = DataLoader(val_dataset, batch_size=1024, pin_memory=True)
+test_dataloader = DataLoader(test_dataset, batch_size=1024, pin_memory=True)
 
 print("creating net")
 
 input_channels = 66
 intermediate_channels = 64
-n_epochs = 10
+n_epochs = 5
 model_path = "supervised_learning_model.pt"
 
 net = BlunderNet(
@@ -88,20 +106,24 @@ train_losses = []
 val_losses = []
 cur_best_loss = float("inf")
 for epoch in range(n_epochs):
-  print(f"\n\nbeginning epoch {epoch}")
-  start = time.time()
-  train_loss = train(net, train_dataloader, opt)
-  val_loss = evaluate(net, val_dataloader)
-  end = time.time()
+    print(f"\n\nbeginning epoch {epoch}")
+    start = time.time()
+    train_loss, train_accuracy = train(net, train_dataloader, opt)
+    val_loss, val_accuracy = evaluate(net, val_dataloader)
+    end = time.time()
 
-  print(f"{train_loss=} {val_loss=} duration={end - start}")
-  train_losses.append(train_loss)
-  val_losses.append(val_loss)
-  if val_loss < cur_best_loss:
-    cur_best_loss = val_loss
-    torch.save(net.state_dict(), model_path)
+    print(f"{train_loss=:.2f} {val_loss=:.2f}")
+    print(f"train_accuracy={train_accuracy * 100:.2f}% val_accuracy={val_accuracy * 100:.2f}%")
+    print(f"duration={end - start:.2f}")
 
-test_loss = evaluate(net, test_dataloader)
+    train_losses.append(train_loss)
+    val_losses.append(val_loss)
+    if val_loss < cur_best_loss:
+        cur_best_loss = val_loss
+        net.eval()
+        torch.save(net.state_dict(), model_path)
+
+test_loss, test_accuracy = evaluate(net, test_dataloader)
 print(f"{test_loss=}")
 
 net.load_state_dict(torch.load(model_path))
