@@ -398,6 +398,32 @@ Position Position::applyMove(const Move& move) const {
   return new_pos;
 }
 
+Position Position::flip() const {
+  Position pos;
+  pos.all_pieces = all_pieces.flip(); 
+  pos.enpassant = all_pieces.flip();
+  for (int colour = Colour::White; colour <= Colour::Black; colour++) {
+    // flip piece bitboards
+    for (int piece = PieceType::Pawn; piece <= PieceType::King; piece++) {
+      pos.bit_boards[colour][piece] = bit_boards[colour][piece].flip();
+    }
+  }
+
+  // flip castling rights
+  bool tmp_white_kingside = castling_rights[Colour::White][CastlingType::Kingside];
+  bool tmp_white_queenside = castling_rights[Colour::White][CastlingType::Queenside];
+  pos.castling_rights[Colour::White][CastlingType::Kingside] = castling_rights[Colour::Black][CastlingType::Kingside];
+  pos.castling_rights[Colour::White][CastlingType::Queenside] = castling_rights[Colour::Black][CastlingType::Queenside];
+  pos.castling_rights[Colour::Black][CastlingType::Kingside] = tmp_white_kingside;
+  pos.castling_rights[Colour::Black][CastlingType::Queenside] = tmp_white_queenside;
+
+  pos.halfmove_clock = halfmove_clock;
+  pos.fullmove_cnt = fullmove_cnt;
+  // NOTE: flipping does not replicate the hash and the parent ptr because the hash wouldn't be
+  // valid for the flipped board and we shouldn't need the parent
+  return pos;
+}
+
 unsigned long long Position::getHash() const {
   return hash.getHash();
 }

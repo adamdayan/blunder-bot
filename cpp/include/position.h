@@ -81,6 +81,9 @@ class Position {
     // returns a new position with the given move made
     Position applyMove(const Move& move) const;
 
+    // returns a new position with white and black switched
+    Position flip() const;
+
     unsigned long long getHash() const;
 
   private:

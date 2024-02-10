@@ -168,6 +168,18 @@ TEST_CASE("test shift", "[bitboard]") {
   REQUIRE(bad_north_east_shifted.board == 0);
 }
 
+TEST_CASE("test flip()", "[bitboard]") {
+  BitBoard bb;
+  bb.setBit(63);
+  bb.setBit(56);
+  bb.setBit(35);
+  BitBoard flipped_bb = bb.flip();
+
+  REQUIRE(flipped_bb.getBit(7));
+  REQUIRE(flipped_bb.getBit(0));
+  REQUIRE(flipped_bb.getBit(27));
+}
+
 TEST_CASE("test clearBitsAbove", "[bitboard]") {
   BitBoard bb(15);
   bb.clearBitsAbove(2);

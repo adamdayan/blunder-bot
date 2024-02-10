@@ -12,18 +12,18 @@
 class Net {
   public:
     // returns output of value head by value and output of policy head by reference
-    virtual float getEvaluation(const Position& pos, std::vector<std::pair<Move, float>>& policy) = 0;
+    virtual double getEvaluation(const Position& pos, std::vector<std::pair<Move, float>>& policy) = 0;
 };
 
 class DummyNet : public Net {
   public:
-    float getEvaluation(const Position& pos, std::vector<std::pair<Move, float>>& policy) override;
+    double getEvaluation(const Position& pos, std::vector<std::pair<Move, float>>& policy) override;
 };
 
 class BlunderNet : public Net {
   public:
     BlunderNet(const std::string& model_path);
-    float getEvaluation(const Position& pos, std::vector<std::pair<Move, float>>& policy) override;
+    double getEvaluation(const Position& pos, std::vector<std::pair<Move, float>>& policy) override;
   private:
     torch::jit::script::Module net;
 };

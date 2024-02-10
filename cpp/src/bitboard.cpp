@@ -55,6 +55,10 @@ BitBoard BitBoard::shift(Direction dir) const {
   return BitBoard();
 }
 
+BitBoard BitBoard::flip() const {
+  return BitBoard(std::byteswap(board));
+}
+
 int BitBoard::getLowestSetBit() const {
   int bit_index = std::countr_zero(board);
   // NOTE: decide if this is the correct way to handle there being 0 set bits

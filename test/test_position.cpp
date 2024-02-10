@@ -3,6 +3,7 @@
 #include "position.h"
 #include "constants.h"
 #include "utils.h"
+#include "squares.h"
 
 TEST_CASE("test parseFEN on empty_position", "[position]") {
   Position pos(empty_board);
@@ -180,6 +181,22 @@ TEST_CASE("test drawByRepetition()", "[position]") {
   }
 
   REQUIRE(pos.isDrawByRepetition());
+}
+
+TEST_CASE("test flipped Position", "[position]") {
+  Position pos("4k2r/6pp/8/8/8/8/PP6/2B1K3 w k - 0 1");
+  Position flipped_pos = pos.flip();
+
+  BitBoard all_pieces = flipped_pos.getAllPiecesBitBoard();
+  REQUIRE((all_pieces.getBit(H1) && all_pieces.getBit(H2) &&
+          all_pieces.getBit(G2) && all_pieces.getBit(C8) &&
+          all_pieces.getBit(A7) && all_pieces.getBit(B7)));
+
+  REQUIRE(flipped_pos.getPieceBitBoard(Colour::White, PieceType::Bishop)
+              .getHighestSetBit() == C8);
+
+  REQUIRE(flipped_pos.canCastle(Colour::White, CastlingType::Kingside));
+  REQUIRE_FALSE(flipped_pos.canCastle(Colour::Black, CastlingType::Kingside));
 }
 
 // TODO: add more Position tests
