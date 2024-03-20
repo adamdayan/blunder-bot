@@ -203,7 +203,8 @@ double BlunderNet::getEvaluation(const Position& pos, std::vector<std::pair<Move
       policy_tensor, torch::nn::functional::SoftmaxFuncOptions(1));
   policyTensorToMoves(policy_tensor, policy, pos);
 
-  double value = output.toTuple()->elements()[1].toDouble();
+  torch::Tensor value_tensor  = output.toTuple()->elements()[1].toTensor();
+  double value = value_tensor[0][0].item<double>();
   // if we flipped board then we must also flip evaluation
   if (pos.getSideToMove() == Colour::Black) {
     value = value * -1;

@@ -17,7 +17,8 @@ Move GumbelMCTS::getBestMove(const Position& pos) {
 
   nodes_to_consider = getKGumbelArgtop(nodes_to_consider, std::min<int>(N_TO_CONSIDER, nodes_to_consider.size()));
   for (Node*& child : nodes_to_consider) {
-    root->value += visit(child);
+    // NOTE: should this be negative?
+    root->value += -visit(child);
   }
 
   // NOTE: when we are training with self-play we will need to save the
@@ -34,11 +35,16 @@ bool nodeCompare(Node* lhs, Node* rhs) {
 std::vector<Node*> GumbelMCTS::getKGumbelArgtop(std::vector<Node*>& input_nodes, int k) {
   std::vector<Node*> nodes_to_consider;
   // add logit(move) + gumbel_variable
+  printf("getKGumbelArgtop\n");
   for (Node* child : input_nodes) {
     // store the gumbel variable we applied to "avoid double-counting bias" (Danihelka, 2022)
-    child->applied_gumbel = gumbel_dist(gen);
-    child->score= child->raw_prior + child->applied_gumbel;
+    child->applied_gumbel = 0.5; // gumbel_dist(gen);  TODO: REVERT!!!
+    child->score = child->raw_prior + child->applied_gumbel;
     nodes_to_consider.push_back(child);
+
+    printf("move: %s raw_prior: %f gumbel: %f value: %f score: %f\n",
+            child->move.to_string(*input_nodes[0]->pos.getParent(), true).c_str(), child->raw_prior,
+            child->applied_gumbel, child->value, child->score);
   }
   
   // retain only the best k moves
@@ -52,12 +58,13 @@ Node* GumbelMCTS::applySequentialHalving(Node* root, std::vector<Node*>& nodes_t
   // repeatedly halve the number of nodes we're considering until we only have 1
   // remaining
   while (nodes_to_consider.size() > 1) {
+    printf("\n\nn_simulations remaining: %d\n", n_simulations);
     // number of times to visit each node under consideration
     int n_visits_per_node = n_simulations / (std::log(nodes_to_consider.size()) * nodes_to_consider.size());
     int max_visit_cnt = std::numeric_limits<int>::min();
     for (Node* child : nodes_to_consider) {
       for (int i = 0; i < n_visits_per_node; i++) {
-        root->value += visit(child);
+        root->value += -visit(child);
         n_simulations--;
       }
       max_visit_cnt = std::max(max_visit_cnt, child->visit_count);
@@ -70,15 +77,18 @@ Node* GumbelMCTS::applySequentialHalving(Node* root, std::vector<Node*>& nodes_t
         int remaining_visits = n_simulations / nodes_to_consider.size();
         for (Node* child : nodes_to_consider) {
           for (int i = 0; i < remaining_visits; i++) {
-            root->value += visit(child);
+            root->value += -visit(child);
           }
         }
     }
 
     for (Node* child : nodes_to_consider) {
       // calculate σ(ˆq(a))
-      double sigma_qhat = (C_VISIT + max_visit_cnt) * (C_SCALE * child->value);
+      double sigma_qhat = (C_VISIT + max_visit_cnt) * (C_SCALE * -child->value);
       child->score = child->raw_prior + child->applied_gumbel + sigma_qhat;
+      printf("move: %s raw_prior: %f gumbel: %f value: %f score: %f\n",
+             child->move.to_string(root->pos, true).c_str(), child->raw_prior,
+             child->applied_gumbel, child->value, child->score);
     }
 
     // remove the worst half
@@ -123,15 +133,22 @@ void GumbelMCTS::expandAndEvaluate(Node* node) {
   std::vector<std::pair<Move, float>> moves_and_priors;
   // save the value head's evaluation of the position
   node->value = net->getEvaluation(node->pos, moves_and_priors);
+  float legal_priors_total = 0;
   // iterate through all moves suggested by net's policy head 
   for (const auto& move_prior : moves_and_priors) {
     // but only add nodes for the legal moves suggested by policy head
     if (legal_move_set.find(move_prior.first) != legal_move_set.end()) {
+      legal_priors_total += move_prior.second;
       Position new_pos = node->pos.applyMove(move_prior.first);
       node->expanded_children.emplace_back(
           std::make_unique<Node>(move_prior.second, new_pos, move_prior.first,
                                  false, move_gen.generateMoves(new_pos)));
     }
+  }
+
+  // renormalise probabilities using only legal moves
+  for (const auto& child: node->expanded_children) {
+    child->raw_prior /= legal_priors_total;
   }
 }
 
@@ -144,10 +161,11 @@ int GumbelMCTS::visit(Node* node) {
     // otherwise find the best child and visit it
     node->visit_count++;
     Node* best_child = nullptr;
-    int cur_highest_score = std::numeric_limits<float>::min();
+    float cur_highest_score = -std::numeric_limits<float>::max();
     for (const auto& child : node->expanded_children) {
-      // using both the value and ratio
-      float score = child->value - child->visit_count / static_cast<float>(node->visit_count);
+      // using both the prior and ratio
+      // NOTE: very unsure whether I should be using child->raw_prior or child->value here
+      float score = child->raw_prior - child->visit_count / static_cast<float>(node->visit_count);
       if (score > cur_highest_score) {
         cur_highest_score = score;
         best_child = child.get();

@@ -72,7 +72,7 @@ class GumbelMCTS {
     int simulation_budget;
     std::random_device rd{};
     std::mt19937 gen{rd()};
-    std::extreme_value_distribution<float> gumbel_dist{0.0};
+    std::extreme_value_distribution<float> gumbel_dist{0.0, 1};
 };
 
 #endif // SEARCH_H

@@ -15,10 +15,13 @@ torch.manual_seed(SEED)
 torch.cuda.manual_seed(SEED)
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
+print(f"running on {device}")
 
 def train(model, dataloader, optim):
     loss_total = 0
-    cnt = 0
+    batch_cnt = 0
+    example_cnt = 0
+    accuracy = 0
     model.train()
     with tqdm(dataloader, unit="batch") as batch_iter:
         for x, policy, value in batch_iter:
@@ -31,18 +34,21 @@ def train(model, dataloader, optim):
                 value.to(device),
             )
             loss_total += loss.item()
-            cnt += 1
+            batch_cnt += 1
 
-            accuracy = calculate_policy_accuracy(policy_hat, policy)
+            accuracy = ((calculate_policy_accuracy(policy_hat, policy) * policy_hat.shape[0]) + (accuracy * example_cnt)) / (policy_hat.shape[0] + example_cnt)
+            example_cnt += policy_hat.shape[0]
 
             optim.zero_grad()
             loss.backward()
             optim.step()
-    return (loss_total / cnt) , accuracy
+    return (loss_total / batch_cnt) , accuracy
 
 def evaluate(model, dataloader):
     loss_total = 0
-    cnt = 0
+    batch_cnt = 0
+    example_cnt = 0
+    accuracy = 0
     model.eval()
     with torch.no_grad():
         with tqdm(dataloader, unit="batch") as batch_iter:
@@ -56,11 +62,12 @@ def evaluate(model, dataloader):
                     value.to(device),
                 )
                 loss_total += loss.item()
-                cnt += 1
+                batch_cnt += 1
 
-                accuracy = calculate_policy_accuracy(policy_hat, policy)
+                accuracy = ((calculate_policy_accuracy(policy_hat, policy) * policy_hat.shape[0]) + (accuracy * example_cnt)) / (policy_hat.shape[0] + example_cnt)
+                example_cnt += policy_hat.shape[0]
 
-    return (loss_total / cnt), accuracy
+    return (loss_total / batch_cnt), accuracy
 
 
 print("loading dataset")
@@ -86,8 +93,8 @@ print(f"dur: {end - start}")
 
 print("splitting dataset and initialising dataloaders")
 train_dataloader = DataLoader(train_dataset, batch_size=1024, pin_memory=True, num_workers=3)
-val_dataloader = DataLoader(val_dataset, batch_size=1024, pin_memory=True)
-test_dataloader = DataLoader(test_dataset, batch_size=1024, pin_memory=True)
+val_dataloader = DataLoader(val_dataset, batch_size=1024, pin_memory=True, num_workers=1)
+test_dataloader = DataLoader(test_dataset, batch_size=1024, pin_memory=True, num_workers=1)
 
 print("creating net")
 
@@ -127,5 +134,5 @@ test_loss, test_accuracy = evaluate(net, test_dataloader)
 print(f"{test_loss=}")
 
 net.load_state_dict(torch.load(model_path))
-scripted_net = torch.jit.script(net)
+scripted_net = torch.jit.script(net.to("cpu"))
 scripted_net.save("scripted_" + model_path)
